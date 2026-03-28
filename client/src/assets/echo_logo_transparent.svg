@@ -1,0 +1,15 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+
+  <circle cx="200" cy="168" r="90" fill="#F5EAD8" stroke="#E8C090" stroke-width="2.5"/>
+
+  <path d="M200 102 C206 124 224 132 224 154 C224 176 215 192 200 197 C185 192 176 176 176 154 C176 132 194 124 200 102Z" fill="#D4845A" opacity="0.7"/>
+
+  <path d="M200 122 C204 138 216 144 216 158 C216 172 209 182 200 185 C191 182 184 172 184 158 C184 144 196 138 200 122Z" fill="#C9714A" opacity="0.9"/>
+
+  <ellipse cx="200" cy="164" rx="11" ry="15" fill="#F5D090"/>
+
+  <text x="200" y="308" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="400" fill="#7A5A42" letter-spacing="14">echo</text>
+
+  <text x="200" y="348" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="16" font-weight="400" fill="#C9A98A" letter-spacing="3">you're not the only one</text>
+
+</svg>
