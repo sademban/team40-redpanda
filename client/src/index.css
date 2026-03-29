@@ -3449,7 +3449,7 @@ svg {
       max(0.6rem, env(safe-area-inset-top))
       0.5rem
       max(0.6rem, env(safe-area-inset-bottom));
-    background: rgba(83, 59, 73, 0.32);
+    background: rgba(247, 242, 248, 0.92);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
@@ -3478,18 +3478,20 @@ svg {
   }
 
   .account-inbox-modal .inbox-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.15rem;
-    scrollbar-width: thin;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
   }
 
   .account-inbox-modal .chip {
-    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0.68rem 0.65rem;
+    font-size: 0.76rem;
+    line-height: 1.2;
+    text-align: center;
     white-space: nowrap;
-    padding: 0.72rem 0.9rem;
-    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .account-inbox-modal .account-stream--single {
@@ -3497,12 +3499,16 @@ svg {
     grid-auto-rows: min-content;
     gap: 0.6rem;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding-right: 0.08rem;
     padding-bottom: 0.2rem;
   }
 
   .account-inbox-modal .account-stack {
-    max-height: min(42vh, 17.5rem);
+    max-height: none;
+    overflow-y: visible;
   }
 
   .account-inbox-modal .account-block--list,
