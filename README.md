@@ -45,17 +45,18 @@ Echo transforms the phrase "You're not alone" into a real experience by connecti
 
 ---
 
-## ⚙️ Setup Instructions
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/sademban/team40-redpanda.git
-cd echo
-
 ## 👥 Team Members
 - Divas KC
 - Jasmine Jirel
 - Prashant Shah
 - Nabin Sademba
+
+## ⚙️ Setup Instructions
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/sademban/team40-redpanda.git
+cd echo 
+
 
 
