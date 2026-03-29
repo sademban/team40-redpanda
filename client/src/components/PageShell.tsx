@@ -21,6 +21,10 @@ export function PageShell({
   note = 'One true thing can be enough.',
 }: PageShellProps) {
   const location = useLocation()
+  const isMapRoute = location.pathname === '/'
+  const navigationLinks = isMapRoute
+    ? navigationItems.filter((item) => item.to !== '/')
+    : navigationItems
 
   return (
     <div className="page-shell">
@@ -40,8 +44,18 @@ export function PageShell({
 
       <main className="page-main">{children}</main>
 
-      <nav className="tab-bar" aria-label="Primary">
-        {navigationItems.map((item) => (
+      <nav className={`tab-bar${isMapRoute ? ' tab-bar--map' : ''}`} aria-label="Primary">
+        {isMapRoute ? (
+          <NavLink
+            aria-label="Echo home"
+            className="tab-bar__home"
+            to="/"
+          >
+            <span className="tab-bar__home-orb" />
+          </NavLink>
+        ) : null}
+
+        {navigationLinks.map((item) => (
           <NavLink
             className={() => {
               const isActive =
@@ -57,7 +71,7 @@ export function PageShell({
             key={item.to}
             to={item.to}
           >
-            {item.label}
+            <span className="tab-bar__label">{item.label}</span>
           </NavLink>
         ))}
       </nav>
