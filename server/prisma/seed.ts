@@ -1,136 +1,142 @@
 import 'dotenv/config'
-import { PrismaClient, Emotion } from '@prisma/client'
+import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { Emotion, PrismaClient } from '@prisma/client'
 import { embed } from '../src/services/embeddingService'
 import { hashPassword } from '../src/services/passwordService'
 
 const prisma = new PrismaClient()
 
-const sampleAuthors = [
-  { handle: 'steady-harbor', email: 'author.one@echo.local' },
-  { handle: 'quiet-atlas', email: 'author.two@echo.local' },
-  { handle: 'north-lantern', email: 'author.three@echo.local' },
-  { handle: 'soft-current', email: 'author.four@echo.local' },
+const SEED_USER_COUNT = 40
+const DEFAULT_PASSWORD = 'EchoSeed!2026'
+const CREDENTIALS_FILENAME = 'seed-users-credentials.csv'
+
+interface SeedUser {
+  handle: string
+  email: string
+  password: string
+}
+
+interface StorySeed {
+  city: string
+  country: string
+  areaLabel: string
+  postalHint: string
+  lat: number
+  lng: number
+  emotion: Emotion
+  contextTags: string[]
+  excerpt: string
+  fullText: string
+  language: string
+  year: number
+  openToChat: boolean
+  chatPrompt: string
+}
+
+const locationPresets = [
+  { city: 'New York', country: 'United States', areaLabel: 'Long Island City', postalHint: '11101', lat: 40.7447, lng: -73.9485 },
+  { city: 'Boston', country: 'United States', areaLabel: 'Allston', postalHint: '02134', lat: 42.3539, lng: -71.1328 },
+  { city: 'Dallas', country: 'United States', areaLabel: 'Irving', postalHint: '75039', lat: 32.8913, lng: -96.9587 },
+  { city: 'London', country: 'United Kingdom', areaLabel: 'Wembley', postalHint: 'HA9', lat: 51.556, lng: -0.279 },
+  { city: 'Toronto', country: 'Canada', areaLabel: 'Parkdale', postalHint: 'M6K', lat: 43.6404, lng: -79.4369 },
+  { city: 'Lisbon', country: 'Portugal', areaLabel: 'Arroios', postalHint: '1170', lat: 38.7297, lng: -9.1359 },
+  { city: 'Melbourne', country: 'Australia', areaLabel: 'Carlton', postalHint: '3053', lat: -37.8005, lng: 144.9668 },
+  { city: 'Sydney', country: 'Australia', areaLabel: 'Parramatta', postalHint: '2150', lat: -33.815, lng: 151.0011 },
+  { city: 'Doha', country: 'Qatar', areaLabel: 'Al Sadd', postalHint: 'Zone 38', lat: 25.2858, lng: 51.5073 },
+  { city: 'Berlin', country: 'Germany', areaLabel: 'Neukolln', postalHint: '12043', lat: 52.4771, lng: 13.4397 },
+  { city: 'Auckland', country: 'New Zealand', areaLabel: 'Mount Eden', postalHint: '1024', lat: -36.8796, lng: 174.7653 },
+  { city: 'Tokyo', country: 'Japan', areaLabel: 'Shinjuku', postalHint: '160-0022', lat: 35.6938, lng: 139.7034 },
 ] as const
 
-const stories = [
-  {
-    city: 'New York', country: 'United States', areaLabel: 'Long Island City',
-    postalHint: '11101', lat: 40.7447, lng: -73.9485, emotion: Emotion.pressure,
-    contextTags: ['student', 'family-duty', 'distance-from-home'],
-    excerpt: 'I keep sounding steady on the phone and then unraveling the second the call ends.',
-    fullText: "Everyone back home says I sound strong, so I keep sounding strong. Then the room goes quiet and I can hear how tired I really am. I know why I came here. I know how many people helped me get here. Some nights that gratitude turns into pressure so heavy it feels like another person sitting on my chest.",
-    language: 'English', year: 2025, openToChat: true,
-    chatPrompt: 'I want to talk with someone who knows what duty can do to the body.',
-  },
-  {
-    city: 'New York', country: 'United States', areaLabel: 'Jackson Heights',
-    postalHint: '11372', lat: 40.7557, lng: -73.8831, emotion: Emotion.identity,
-    contextTags: ['new-city', 'distance-from-home'],
-    excerpt: "I switch voices all day and by night I can't tell which one is mine.",
-    fullText: "At work I am quick and polished. On video calls home I soften everything so no one worries. With friends here I explain my life like subtitles. Some days I can feel the split happening in real time. It is not dramatic. It is just tiring to belong in pieces.",
-    language: 'English + Nepali', year: 2024, openToChat: false,
-    chatPrompt: 'I need a conversation where I do not have to translate myself first.',
-  },
-  {
-    city: 'London', country: 'United Kingdom', areaLabel: 'Wembley',
-    postalHint: 'HA9', lat: 51.556, lng: -0.279, emotion: Emotion.homesick,
-    contextTags: ['student', 'distance-from-home'],
-    excerpt: 'I miss the version of silence that belongs to ghar.',
-    fullText: "London is loud in a way that somehow still leaves me alone. I miss the familiar sounds of home: pressure cooker whistles, the lane outside, someone calling my name without warning. Here everything is efficient and no one knows the shape of my day. I did not realize homesickness could live in the body like weather.",
-    language: 'English + Nepali', year: 2024, openToChat: true,
-    chatPrompt: 'If you know what it means to miss ghar in your body, I would listen.',
-  },
-  {
-    city: 'London', country: 'United Kingdom', areaLabel: 'Canary Wharf',
-    postalHint: 'E14', lat: 51.5054, lng: -0.0235, emotion: Emotion.pressure,
-    contextTags: ['work-pressure', 'family-duty'],
-    excerpt: 'The more stable I look, the harder it becomes to admit I am barely keeping up.',
-    fullText: "My paychecks look like progress from far away. People hear that I am in London and fill in the rest of the story for themselves. I do not want to ruin that image, so I keep performing okayness even when my body is begging me to stop. The strange part is that success can make confession harder.",
-    language: 'English', year: 2025, openToChat: true,
-    chatPrompt: 'I want to talk with someone who is tired of performing okayness.',
-  },
-  {
-    city: 'Toronto', country: 'Canada', areaLabel: 'Parkdale',
-    postalHint: 'M6K', lat: 43.6404, lng: -79.4369, emotion: Emotion.lonely,
-    contextTags: ['new-city', 'distance-from-home'],
-    excerpt: 'I am always around people and still somehow carrying every hard thing alone.',
-    fullText: "I have classmates, coworkers, roommates, and a city full of noise outside. Still, loneliness keeps finding me in the smallest moments: grocery aisles, cold train platforms, the walk home after everyone else has somewhere to be. I do not need a crowd. I just need one place where I do not have to explain why this feels hard.",
-    language: 'English', year: 2025, openToChat: false,
-    chatPrompt: 'I could use a quiet conversation with someone who understands this kind of loneliness.',
-  },
-  {
-    city: 'Toronto', country: 'Canada', areaLabel: 'North York',
-    postalHint: 'M2N', lat: 43.7615, lng: -79.4111, emotion: Emotion.hope,
-    contextTags: ['student', 'new-city'],
-    excerpt: 'Nothing got easier all at once. I just learned that one honest sentence can keep a day from collapsing.',
-    fullText: "I used to think hope had to feel big. These days it feels smaller and more practical. It is eating, texting back, opening the curtain, telling one friend the real version instead of the polished one. Maybe hope is not brightness. Maybe it is just not leaving yourself alone with the whole weight of it.",
-    language: 'English', year: 2023, openToChat: true,
-    chatPrompt: 'If your hope is small and practical right now, I think we could talk.',
-  },
-  {
-    city: 'Doha', country: 'Qatar', areaLabel: 'Al Sadd',
-    postalHint: 'Zone 38', lat: 25.2858, lng: 51.5073, emotion: Emotion.pressure,
-    contextTags: ['work-pressure', 'family-duty'],
-    excerpt: 'I send money home and still feel guilty for every day I am not physically there.',
-    fullText: "Work is exhausting, but the harder part is the distance. When something happens at home, I feel how little a transfer receipt can actually hold. I am helping, yes, but I am also missing birthdays, hospital visits, arguments, ordinary evenings. It is a strange life to be useful and absent at the same time.",
-    language: 'English', year: 2024, openToChat: true,
-    chatPrompt: 'I want to talk with someone who understands being useful and absent at once.',
-  },
-  {
-    city: 'Melbourne', country: 'Australia', areaLabel: 'Carlton',
-    postalHint: '3053', lat: -37.8005, lng: 144.9668, emotion: Emotion.hope,
-    contextTags: ['distance-from-home', 'new-city'],
-    excerpt: 'The first time I told the truth, nothing broke. That changed more than advice ever did.',
-    fullText: "I kept waiting for honesty to create damage. Instead it made room. My aunt still loves me. My friend did not think less of me. The problem was never that I was too much; it was that I had been carrying too much alone. I still struggle, but I do not disappear inside it the way I used to.",
-    language: 'English', year: 2023, openToChat: true,
-    chatPrompt: 'If you need a first honest conversation, I would meet you there.',
-  },
-  {
-    city: 'Sydney', country: 'Australia', areaLabel: 'Parramatta',
-    postalHint: '2150', lat: -33.815, lng: 151.0011, emotion: Emotion.homesick,
-    contextTags: ['student', 'distance-from-home'],
-    excerpt: 'I can explain the city to everyone back home, but I still have not found where to put my own sadness in it.',
-    fullText: "Sydney is bright and open and everyone says I should feel lucky here. I do feel lucky. That is part of the problem. It is hard to speak about loneliness when gratitude is sitting beside it, asking you to be quieter. I think a lot of us in bidesh become fluent in silence before we realize it.",
-    language: 'English + Nepali', year: 2025, openToChat: false,
-    chatPrompt: 'I want to hear from someone who understands how gratitude and sadness can live together.',
-  },
-  {
-    city: 'Boston', country: 'United States', areaLabel: 'Allston',
-    postalHint: '02134', lat: 42.3539, lng: -71.1328, emotion: Emotion.pressure,
-    contextTags: ['student', 'family-duty'],
-    excerpt: 'I keep treating rest like something I have to earn from people who are not even in the room.',
-    fullText: "The deadline is never just the deadline. It is also my parents' sacrifice, my younger cousins watching, and every version of me that promised I would make it worth it. I am learning that pressure can sound like ambition when everyone else is praising it. Inside the body, though, it feels much more like fear.",
-    language: 'English', year: 2025, openToChat: true,
-    chatPrompt: 'If your ambition has started sounding like fear, I would talk with you.',
-  },
-  {
-    city: 'Dallas', country: 'United States', areaLabel: 'Irving',
-    postalHint: '75039', lat: 32.8913, lng: -96.9587, emotion: Emotion.lonely,
-    contextTags: ['work-pressure', 'distance-from-home'],
-    excerpt: 'The hardest part is having no ordinary witness to my life here.',
-    fullText: "People ask how work is going and I can answer that. What I cannot answer quickly is how strange it feels to build a whole life somewhere no one has known you since childhood. There is no effortless version of me here. Some days I would trade all the networking in the world for one walk with someone who already knows my silences.",
-    language: 'English', year: 2024, openToChat: false,
-    chatPrompt: 'I want a conversation that does not start with small talk.',
-  },
-  {
-    city: 'Lisbon', country: 'Portugal', areaLabel: 'Arroios',
-    postalHint: '1170', lat: 38.7297, lng: -9.1359, emotion: Emotion.identity,
-    contextTags: ['new-city', 'distance-from-home'],
-    excerpt: 'I wanted reinvention. I did not expect how much grief could hide inside it.',
-    fullText: "Moving gave me room to become someone new, but it also took away the people who could recognize me without explanation. Freedom can feel beautiful and lonely at the same time. I am still figuring out which parts of me changed because I grew, and which parts changed because I got tired of translating myself.",
-    language: 'English', year: 2023, openToChat: true,
-    chatPrompt: 'If reinvention has also made you lonely, I think we would understand each other.',
-  },
-  {
-    city: 'Boston', country: 'United States', areaLabel: 'Cambridge',
-    postalHint: '02139', lat: 42.3601, lng: -71.0942, emotion: Emotion.lonely,
-    contextTags: ['student', 'new-city'],
-    excerpt: 'I have learned to perform being fine so well that I am starting to believe my own performance.',
-    fullText: "There is a version of me that shows up to class, goes to the library, makes small talk in the kitchen. That version is fine. She is always fine. The problem is that after a while you forget there is supposed to be another version. I do not want to be fixed. I just want to be known, briefly, by someone who does not need me to be fine.",
-    language: 'English', year: 2025, openToChat: true,
-    chatPrompt: 'If you also know how to perform fine, we do not have to do that here.',
-  },
+const emotionCycle: Emotion[] = [
+  Emotion.pressure,
+  Emotion.identity,
+  Emotion.homesick,
+  Emotion.lonely,
+  Emotion.hope,
 ]
+
+const contextTagSets: string[][] = [
+  ['student', 'family-duty', 'distance-from-home'],
+  ['work-pressure', 'new-city', 'distance-from-home'],
+  ['identity-shift', 'language', 'new-city'],
+  ['career', 'immigration', 'belonging'],
+  ['homesick', 'distance-from-home', 'quiet-life'],
+  ['hope', 'small-wins', 'community'],
+]
+
+const excerptTemplates = [
+  'I look stable from the outside, but most days still feel like a balancing act.',
+  'I am learning a new city while trying not to lose the parts of me that matter.',
+  'Some nights feel heavier than they should, even when nothing is technically wrong.',
+  'I can explain my plans clearly, but not always the loneliness behind them.',
+  'Hope has become practical for me: one honest message, one steady breath, one meal.',
+]
+
+const fullTextTemplates = [
+  'I moved for a clear reason and still feel the cost of that choice every week. This post is me choosing honesty over performance for a minute.',
+  'I call home, say I am fine, and then sit with everything I did not say. I know many of us in bidesh carry that same split.',
+  'The outside story sounds like progress, but inside it is mostly adaptation and quiet effort. I am writing this so I do not disappear inside routine.',
+  'Being useful to people you love from far away is its own kind of weight. I am grateful and tired at the same time.',
+  'I do not need advice right now, just a place where this can be true without being reduced. If this resonates, I am open to a real conversation.',
+]
+
+const chatPromptTemplates = [
+  'If this feels familiar, we can talk honestly.',
+  'I am open to a grounded conversation from someone who understands this.',
+  'No performance needed. A calm, direct chat is welcome.',
+  'If you are carrying something similar, I am willing to listen.',
+]
+
+function zeroPad(value: number): string {
+  return value.toString().padStart(2, '0')
+}
+
+function buildSeedUsers(count: number, password: string): SeedUser[] {
+  return Array.from({ length: count }, (_, index) => {
+    const userNumber = index + 1
+    const padded = zeroPad(userNumber)
+
+    return {
+      handle: `echo-seed-${padded}`,
+      email: `seed.user${padded}@echo.local`,
+      password,
+    }
+  })
+}
+
+function buildStorySeed(user: SeedUser, index: number): StorySeed {
+  const location = locationPresets[index % locationPresets.length]
+  const emotion = emotionCycle[index % emotionCycle.length]
+  const contextTags = contextTagSets[index % contextTagSets.length]
+  const excerpt = `${excerptTemplates[index % excerptTemplates.length]} (${location.city})`
+  const fullText = `${fullTextTemplates[index % fullTextTemplates.length]} This was shared by ${user.handle} from ${location.areaLabel}, ${location.city}.`
+  const chatPrompt = chatPromptTemplates[index % chatPromptTemplates.length]
+
+  return {
+    ...location,
+    emotion,
+    contextTags,
+    excerpt,
+    fullText,
+    language: index % 4 === 0 ? 'English + Nepali' : 'English',
+    year: 2023 + (index % 3),
+    openToChat: index % 2 === 0,
+    chatPrompt,
+  }
+}
+
+async function writeSeedCredentials(users: SeedUser[]): Promise<string> {
+  const outputPath = path.resolve(process.cwd(), 'prisma', CREDENTIALS_FILENAME)
+  const content = [
+    'email,password,handle',
+    ...users.map((user) => `${user.email},${user.password},${user.handle}`),
+  ].join('\n')
+
+  await writeFile(outputPath, `${content}\n`, 'utf8')
+  return outputPath
+}
 
 async function main() {
   console.log('Clearing existing chat data and stories...')
@@ -138,44 +144,57 @@ async function main() {
   await prisma.conversation.deleteMany()
   await prisma.chatRequest.deleteMany()
   await prisma.story.deleteMany()
+  await prisma.user.deleteMany()
 
-  console.log(`Ensuring ${sampleAuthors.length} sample persistent authors...`)
-  const seededAuthors = await Promise.all(
-    sampleAuthors.map((author) =>
+  const seedPassword = (process.env.SEED_USER_PASSWORD ?? DEFAULT_PASSWORD).trim()
+  const seedUsers = buildSeedUsers(SEED_USER_COUNT, seedPassword)
+  const credentialsPath = await writeSeedCredentials(seedUsers)
+
+  console.log(`Ensuring ${seedUsers.length} sample persistent users...`)
+  const seededUsers = await Promise.all(
+    seedUsers.map((seedUser) =>
       prisma.user.upsert({
-        where: { email: author.email },
+        where: { email: seedUser.email },
         update: {
-          handle: author.handle,
-          passwordHash: hashPassword('localpass123'),
+          handle: seedUser.handle,
+          passwordHash: hashPassword(seedUser.password),
           isPersistent: true,
         },
         create: {
-          handle: author.handle,
-          email: author.email,
-          passwordHash: hashPassword('localpass123'),
+          handle: seedUser.handle,
+          email: seedUser.email,
+          passwordHash: hashPassword(seedUser.password),
           isPersistent: true,
         },
       }),
     ),
   )
 
-  console.log(`Seeding ${stories.length} stories...`)
+  let shouldGenerateEmbeddings = Boolean(process.env.OPENROUTER_API_KEY?.trim())
+  if (!shouldGenerateEmbeddings) {
+    console.log('OPENROUTER_API_KEY is not set. Stories will be seeded without embeddings.')
+  }
 
-  for (const [i, data] of stories.entries()) {
-    process.stdout.write(`  [${i + 1}/${stories.length}] ${data.city} — generating embedding...`)
+  console.log(`Seeding ${seededUsers.length} stories...`)
+  for (const [index, seededUser] of seededUsers.entries()) {
+    const storyData = buildStorySeed(seedUsers[index], index)
+    process.stdout.write(`  [${index + 1}/${seededUsers.length}] ${seededUser.email} -> ${storyData.city}`)
 
     let embedding: number[] | null = null
-    try {
-      embedding = await embed(`${data.excerpt} ${data.fullText}`)
-    } catch (err) {
-      console.error(` FAILED (${err})`)
+    if (shouldGenerateEmbeddings) {
+      try {
+        embedding = await embed(`${storyData.excerpt} ${storyData.fullText}`)
+      } catch (err) {
+        console.error(` embedding failed (${err})`)
+        console.log('Embedding disabled for remaining stories in this seed run.')
+        shouldGenerateEmbeddings = false
+      }
     }
 
-    const author = seededAuthors[i % seededAuthors.length]
     const story = await prisma.story.create({
       data: {
-        ...data,
-        authorId: author.id,
+        ...storyData,
+        authorId: seededUser.id,
       },
     })
 
@@ -184,13 +203,15 @@ async function main() {
       await prisma.$executeRawUnsafe(
         `UPDATE "Story" SET embedding = '${vectorStr}'::vector WHERE id = '${story.id}'`,
       )
-      console.log(' done')
+      console.log(' with embedding')
     } else {
-      console.log(' stored without embedding')
+      console.log(' stored')
     }
   }
 
   console.log('Seed complete.')
+  console.log(`Credentials written to: ${credentialsPath}`)
+  console.log(`Default password for seeded users: ${seedPassword}`)
 }
 
 main()

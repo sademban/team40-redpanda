@@ -29,3 +29,6 @@ client/.env.*
 
 # Local infrastructure (do not push)
 iac/
+
+# Seed output
+server/prisma/seed-users-credentials.csv
