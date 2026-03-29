@@ -73,6 +73,8 @@ jobs:
               exit 1
             fi
 
+            sudo docker compose -f docker-compose.deploy.yml down --remove-orphans --rmi local || true
             sudo docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans
+            sudo docker image prune -f
             sleep 5
             curl -fsS http://127.0.0.1/health

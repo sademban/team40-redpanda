@@ -51,6 +51,10 @@ sudo chown -R ubuntu:ubuntu /opt/echo
 
 ## Notes
 
+- Local Docker flow stays Caddy-free:
+  - `docker compose up --build` (uses `docker-compose.yml` + override)
+- Staging/production deploy flow uses Caddy:
+  - `docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans`
 - Workflow deploy command is `docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans` in `/opt/echo/server`.
 - Health check is verified via `http://127.0.0.1/health` through Caddy on the EC2 host.
 - DNS is required: create an `A` record for `API_DOMAIN` pointing to EC2 public IP.
