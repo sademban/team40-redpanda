@@ -60,10 +60,10 @@ const emotionCycle: Emotion[] = [
 const contextTagSets: string[][] = [
   ['student', 'family-duty', 'distance-from-home'],
   ['work-pressure', 'new-city', 'distance-from-home'],
-  ['identity-shift', 'language', 'new-city'],
-  ['career', 'immigration', 'belonging'],
-  ['homesick', 'distance-from-home', 'quiet-life'],
-  ['hope', 'small-wins', 'community'],
+  ['new-city', 'distance-from-home', 'student'],
+  ['family-duty', 'work-pressure', 'new-city'],
+  ['distance-from-home', 'new-city', 'family-duty'],
+  ['student', 'work-pressure', 'distance-from-home'],
 ]
 
 const excerptTemplates = [
