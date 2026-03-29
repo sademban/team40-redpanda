@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { divIcon } from 'leaflet'
+import { divIcon, type LatLngTuple } from 'leaflet'
 import {
   MapContainer,
   Marker,
@@ -37,6 +37,11 @@ interface RegistryMapProps {
   resetViewToken: number
   showAmbientStatus: boolean
 }
+
+const WORLD_BOUNDS: [LatLngTuple, LatLngTuple] = [
+  [-68, -179.5],
+  [84, 179.5],
+]
 
 function radiusForCluster(cluster: CityCluster) {
   const densityBoost = 10 + Math.min(cluster.stories.length, 4) * 2
@@ -212,14 +217,19 @@ export function RegistryMap({
           attributionControl
           className="world-map world-map--leaflet"
           center={[20, 8]}
+          maxBounds={WORLD_BOUNDS}
+          maxBoundsViscosity={1}
           maxZoom={8}
-          minZoom={2}
+          minZoom={3}
           scrollWheelZoom
-          zoom={2}
+          worldCopyJump={false}
+          zoom={3}
           zoomControl={false}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            bounds={WORLD_BOUNDS}
+            noWrap
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
           <ZoomControl position="bottomright" />
