@@ -31,7 +31,6 @@ export function PageShell({
             <span className="brand-pill__orb" />
             <span className="brand-pill__text">
               <span className="brand-pill__name">Echo</span>
-              <span className="brand-pill__tag">for the nights that travel far</span>
             </span>
           </NavLink>
 

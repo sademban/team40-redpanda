@@ -1,8 +1,9 @@
-import { startTransition, useDeferredValue, useMemo, useState } from 'react'
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   cityClusters,
   emotionLabels,
+  inferEmotion,
 } from '../data/stories'
 import { FilterChips } from '../components/FilterChips'
 import { GlassPanel } from '../components/GlassPanel'
@@ -25,8 +26,11 @@ export function HomePage() {
   const [hoveredClusterId, setHoveredClusterId] = useState<string | null>(null)
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null)
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
+  const [showAmbientCopy, setShowAmbientCopy] = useState(true)
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const deferredQuery = useDeferredValue(query)
   const normalizedQuery = deferredQuery.trim().toLowerCase()
+  const inferredEmotion = normalizedQuery ? inferEmotion(normalizedQuery) : null
 
   const filteredClusters = useMemo(
     () =>
@@ -36,18 +40,26 @@ export function HomePage() {
           stories: cluster.stories.filter((story) => {
             const matchesEmotion =
               selectedEmotion === 'all' || story.emotion === selectedEmotion
+            const searchableText = [
+              emotionLabels[story.emotion],
+              story.excerpt,
+              story.fullText,
+              story.chatPrompt,
+              story.language,
+              ...story.contextTags,
+            ]
+              .join(' ')
+              .toLowerCase()
             const matchesQuery =
               normalizedQuery.length === 0 ||
-              story.areaLabel.toLowerCase().includes(normalizedQuery) ||
-              story.postalHint.toLowerCase().includes(normalizedQuery) ||
-              story.city.toLowerCase().includes(normalizedQuery) ||
-              story.country.toLowerCase().includes(normalizedQuery)
+              searchableText.includes(normalizedQuery) ||
+              story.emotion === inferredEmotion
 
             return matchesEmotion && matchesQuery
           }),
         }))
         .filter((cluster) => cluster.stories.length > 0),
-    [normalizedQuery, selectedEmotion],
+    [inferredEmotion, normalizedQuery, selectedEmotion],
   )
 
   const selectedCluster =
@@ -59,6 +71,46 @@ export function HomePage() {
     null
 
   const hasSelection = Boolean(selectedCluster && activeStory)
+
+  function clearIdleTimer() {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
+  }
+
+  function scheduleAmbientReturn(delay = 4200) {
+    clearIdleTimer()
+
+    if (hasSelection) {
+      return
+    }
+
+    idleTimerRef.current = setTimeout(() => {
+      setShowAmbientCopy(true)
+    }, delay)
+  }
+
+  function handleMapEngage() {
+    setShowAmbientCopy(false)
+    scheduleAmbientReturn()
+  }
+
+  useEffect(() => {
+    if (hasSelection) {
+      clearIdleTimer()
+      return
+    }
+
+    clearIdleTimer()
+    idleTimerRef.current = setTimeout(() => {
+      setShowAmbientCopy(true)
+    }, 1800)
+
+    return () => {
+      clearIdleTimer()
+    }
+  }, [hasSelection])
 
   function openWriter() {
     startTransition(() => {
@@ -76,7 +128,13 @@ export function HomePage() {
       <section className="discover-page">
         <div className="discover-surface">
           <div className="discover-surface__top">
-            <SearchInput onChange={setQuery} value={query} />
+            <SearchInput
+              className="search-shell--semantic"
+              onChange={setQuery}
+              onFocus={handleMapEngage}
+              placeholder="Search a feeling, memory, or line"
+              value={query}
+            />
             <FilterChips
               onSelect={(value) => setSelectedEmotion(value as EmotionFilter)}
               options={landingEmotionOptions}
@@ -84,7 +142,7 @@ export function HomePage() {
             />
           </div>
 
-          <div className="discover-copy">
+          <div className={`discover-copy${showAmbientCopy ? '' : ' is-hidden'}`}>
             <p className="eyebrow">Map</p>
             <h1 className="display">See where someone else left a feeling.</h1>
             <p className="discover-copy__body">
@@ -95,22 +153,29 @@ export function HomePage() {
           <RegistryMap
             clusters={filteredClusters}
             hoveredClusterId={hoveredClusterId}
+            onEngage={handleMapEngage}
             onHover={setHoveredClusterId}
             selectedStoryId={selectedStoryId}
             selectedClusterId={selectedCluster?.id ?? null}
             onSelect={(clusterId, storyId) => {
+              setShowAmbientCopy(false)
+              clearIdleTimer()
               setSelectedClusterId(clusterId)
               const nextCluster = filteredClusters.find((cluster) => cluster.id === clusterId)
               setSelectedStoryId(storyId ?? nextCluster?.stories[0]?.id ?? null)
             }}
           />
 
-          <button className="floating-compose" onClick={openWriter} type="button">
-            Say one true thing
-          </button>
-
           <div className="discover-drawer-shell">
-            {hasSelection && selectedCluster && activeStory ? (
+            {filteredClusters.length === 0 ? (
+              <GlassPanel className="map-invite" flat>
+                <p className="panel-kicker">Nothing close yet</p>
+                <h2 className="section-title">No stories surfaced for that feeling right now.</h2>
+                <p className="section-copy">
+                  Try a softer line, or shift the feeling filter and see what opens.
+                </p>
+              </GlassPanel>
+            ) : hasSelection && selectedCluster && activeStory ? (
               <GlassPanel className="discover-drawer" flat>
                 <div className="discover-drawer__header">
                   <div>
@@ -136,6 +201,7 @@ export function HomePage() {
                       aria-label="Close story sheet"
                       className="sheet-dismiss"
                       onClick={() => {
+                        handleMapEngage()
                         setSelectedClusterId(null)
                         setSelectedStoryId(null)
                         setHoveredClusterId(null)

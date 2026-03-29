@@ -1,12 +1,21 @@
 interface SearchInputProps {
   value: string
   onChange: (value: string) => void
+  onFocus?: () => void
+  placeholder?: string
+  className?: string
 }
 
-export function SearchInput({ value, onChange }: SearchInputProps) {
+export function SearchInput({
+  value,
+  onChange,
+  onFocus,
+  placeholder = 'Search a feeling, memory, or line',
+  className = '',
+}: SearchInputProps) {
   return (
-    <label className="field search-shell">
-      <span className="sr-only">Search by city or country</span>
+    <label className={`field search-shell ${className}`.trim()}>
+      <span className="sr-only">Search by feeling, memory, or line</span>
       <svg
         className="search-shell__icon"
         viewBox="0 0 24 24"
@@ -24,7 +33,8 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
       <input
         className="field__input"
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Search an area or postal code"
+        onFocus={onFocus}
+        placeholder={placeholder}
         type="search"
         value={value}
       />

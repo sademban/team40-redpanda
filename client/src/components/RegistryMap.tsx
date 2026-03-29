@@ -7,6 +7,7 @@ import {
   Tooltip,
   ZoomControl,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import type { CityCluster } from '../types/story'
 
@@ -27,6 +28,7 @@ interface RegistryMapProps {
   hoveredClusterId: string | null
   selectedClusterId: string | null
   selectedStoryId: string | null
+  onEngage: () => void
   onHover: (clusterId: string | null) => void
   onSelect: (clusterId: string, storyId?: string | null) => void
 }
@@ -73,11 +75,23 @@ function FitToStories({
   return null
 }
 
+function MapEngagementSignals({ onEngage }: { onEngage: () => void }) {
+  useMapEvents({
+    click: onEngage,
+    dragstart: onEngage,
+    movestart: onEngage,
+    zoomstart: onEngage,
+  })
+
+  return null
+}
+
 export function RegistryMap({
   clusters,
   hoveredClusterId,
   selectedClusterId,
   selectedStoryId,
+  onEngage,
   onHover,
   onSelect,
 }: RegistryMapProps) {
@@ -143,6 +157,7 @@ export function RegistryMap({
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
           <ZoomControl position="bottomright" />
+          <MapEngagementSignals onEngage={onEngage} />
           <FitToStories
             activeClusterId={activeCluster?.id ?? null}
             activeLat={activeCluster?.lat ?? null}
@@ -160,7 +175,10 @@ export function RegistryMap({
                 <CircleMarker
                   center={[point.lat, point.lng]}
                   eventHandlers={{
-                    click: () => onSelect(point.clusterId, point.id),
+                    click: () => {
+                      onEngage()
+                      onSelect(point.clusterId, point.id)
+                    },
                     mouseout: () => onHover(null),
                     mouseover: () => onHover(point.clusterId),
                   }}
@@ -204,7 +222,10 @@ export function RegistryMap({
                 <CircleMarker
                   center={[cluster.lat, cluster.lng]}
                   eventHandlers={{
-                    click: () => onSelect(cluster.id, cluster.stories[0]?.id ?? null),
+                    click: () => {
+                      onEngage()
+                      onSelect(cluster.id, cluster.stories[0]?.id ?? null)
+                    },
                     mouseout: () => onHover(null),
                     mouseover: () => onHover(cluster.id),
                   }}
