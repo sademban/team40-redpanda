@@ -263,6 +263,13 @@ svg {
   transform: translateY(-1px) scale(1.02);
 }
 
+.tab-bar__home.active .tab-bar__home-orb {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 14px 30px rgba(240, 110, 168, 0.3),
+    0 0 0 6px rgba(255, 255, 255, 0.42);
+}
+
 .tab-bar__home-orb {
   width: 3.15rem;
   height: 3.15rem;
