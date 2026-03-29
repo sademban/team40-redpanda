@@ -1,5 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAppSession } from '../auth/session.tsx'
 import {
   contextLabels,
   emotionLabels,
@@ -31,6 +32,7 @@ function getInitialIntroVisibility() {
 }
 
 export function HomePage() {
+  const { session } = useAppSession()
   const navigate = useNavigate()
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionFilter>('all')
   const [query, setQuery] = useState('')
@@ -191,6 +193,7 @@ export function HomePage() {
             showAmbientStatus={showHoverStatus}
             selectedStoryId={selectedStoryId}
             selectedClusterId={selectedCluster?.id ?? null}
+            userLocation={session.profile}
           />
 
           <div className="discover-drawer-shell">
