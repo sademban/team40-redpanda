@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { divIcon } from 'leaflet'
 import {
-  CircleMarker,
   MapContainer,
+  Marker,
   Pane,
   TileLayer,
   Tooltip,
@@ -21,6 +22,7 @@ interface StoryPoint {
   lat: number
   lng: number
   openToChat: boolean
+  delayIndex: number
 }
 
 interface RegistryMapProps {
@@ -30,12 +32,50 @@ interface RegistryMapProps {
   selectedStoryId: string | null
   onEngage: () => void
   onHover: (clusterId: string | null) => void
+  onResetWorld: () => void
   onSelect: (clusterId: string, storyId?: string | null) => void
+  resetViewToken: number
   showAmbientStatus: boolean
 }
 
-function radiusForCluster(count: number) {
-  return 10 + Math.min(count, 4) * 2
+function radiusForCluster(cluster: CityCluster) {
+  const densityBoost = 10 + Math.min(cluster.stories.length, 4) * 2
+  return densityBoost + (cluster.hasOpenConversation ? 1 : 0)
+}
+
+function buildCityHubIcon(cluster: CityCluster, isActive: boolean) {
+  const size = radiusForCluster(cluster) * 2 + (isActive ? 18 : 12)
+
+  return divIcon({
+    className: 'map-div-icon map-div-icon--hub',
+    html: `
+      <span class="map-hub${cluster.hasOpenConversation ? ' is-open' : ''}${isActive ? ' is-active' : ''}">
+        <span class="map-hub__halo"></span>
+        <span class="map-hub__ring"></span>
+        <span class="map-hub__core"></span>
+      </span>
+    `,
+    iconAnchor: [size / 2, size / 2],
+    iconSize: [size, size],
+    tooltipAnchor: [0, -(size / 2)],
+  })
+}
+
+function buildStoryPointIcon(point: StoryPoint, isActive: boolean) {
+  const size = isActive ? 24 : point.openToChat ? 18 : 15
+
+  return divIcon({
+    className: 'map-div-icon map-div-icon--story',
+    html: `
+      <span class="map-story-point${point.openToChat ? ' is-open' : ' is-passive'}${isActive ? ' is-active' : ''} map-story-point--delay-${point.delayIndex}">
+        <span class="map-story-point__halo"></span>
+        <span class="map-story-point__dot"></span>
+      </span>
+    `,
+    iconAnchor: [size / 2, size / 2],
+    iconSize: [size, size],
+    tooltipAnchor: [0, -(size / 2)],
+  })
 }
 
 function FitToStories({
@@ -43,26 +83,20 @@ function FitToStories({
   activeLat,
   activeLng,
   clusterBounds,
-  clusterKey,
+  resetViewToken,
 }: {
   activeClusterId: string | null
   activeLat: number | null
   activeLng: number | null
   clusterBounds: [number, number][]
-  clusterKey: string
+  resetViewToken: number
 }) {
   const map = useMap()
+  const hasFitInitialView = useRef(false)
+  const lastResetToken = useRef(resetViewToken)
 
   useEffect(() => {
-    if (activeClusterId && activeLat !== null && activeLng !== null) {
-      map.flyTo([activeLat, activeLng], Math.max(map.getZoom(), 5), {
-        animate: true,
-        duration: 0.75,
-      })
-      return
-    }
-
-    if (clusterBounds.length === 0) {
+    if (hasFitInitialView.current || clusterBounds.length === 0) {
       return
     }
 
@@ -71,7 +105,37 @@ function FitToStories({
       maxZoom: 2.4,
       padding: [88, 88],
     })
-  }, [activeClusterId, activeLat, activeLng, clusterBounds, clusterKey, map])
+    hasFitInitialView.current = true
+  }, [clusterBounds, map])
+
+  useEffect(() => {
+    if (!activeClusterId || activeLat === null || activeLng === null) {
+      return
+    }
+
+    map.flyTo([activeLat, activeLng], Math.max(map.getZoom(), 5), {
+      animate: true,
+      duration: 0.75,
+    })
+  }, [activeClusterId, activeLat, activeLng, map])
+
+  useEffect(() => {
+    if (lastResetToken.current === resetViewToken) {
+      return
+    }
+
+    lastResetToken.current = resetViewToken
+
+    if (clusterBounds.length === 0) {
+      return
+    }
+
+    map.fitBounds(clusterBounds, {
+      animate: true,
+      maxZoom: 2.4,
+      padding: [88, 88],
+    })
+  }, [clusterBounds, map, resetViewToken])
 
   return null
 }
@@ -94,7 +158,9 @@ export function RegistryMap({
   selectedStoryId,
   onEngage,
   onHover,
+  onResetWorld,
   onSelect,
+  resetViewToken,
   showAmbientStatus,
 }: RegistryMapProps) {
   const highlighted =
@@ -102,31 +168,27 @@ export function RegistryMap({
     clusters.find((cluster) => cluster.id === selectedClusterId) ??
     null
 
+  const activeCluster = clusters.find((cluster) => cluster.id === selectedClusterId) ?? null
+
   const points = useMemo<StoryPoint[]>(
     () =>
-      clusters.flatMap((cluster) =>
-        cluster.stories.map((story) => ({
-          id: story.id,
-          clusterId: cluster.id,
-          city: story.city,
-          country: story.country,
-          areaLabel: story.areaLabel,
-          postalHint: story.postalHint,
-          lat: story.lat,
-          lng: story.lng,
-          openToChat: story.openToChat,
-        })),
-      ),
-    [clusters],
+      activeCluster?.stories.map((story, index) => ({
+        id: story.id,
+        clusterId: activeCluster.id,
+        city: story.city,
+        country: story.country,
+        areaLabel: story.areaLabel,
+        postalHint: story.postalHint,
+        lat: story.lat,
+        lng: story.lng,
+        openToChat: story.openToChat,
+        delayIndex: Math.min(index, 5),
+      })) ?? [],
+    [activeCluster],
   )
 
-  const activeCluster = clusters.find((cluster) => cluster.id === selectedClusterId) ?? null
   const clusterBounds = useMemo(
     () => clusters.map((cluster) => [cluster.lat, cluster.lng] as [number, number]),
-    [clusters],
-  )
-  const clusterKey = useMemo(
-    () => clusters.map((cluster) => cluster.id).join('|'),
     [clusters],
   )
 
@@ -139,6 +201,12 @@ export function RegistryMap({
             <p className="map-chrome__title">Tap the ring to open what was left here.</p>
           </div>
         ) : null}
+
+        <div className="map-chrome map-chrome--controls">
+          <button className="map-control-button" onClick={onResetWorld} type="button">
+            World
+          </button>
+        </div>
 
         <MapContainer
           attributionControl
@@ -161,92 +229,29 @@ export function RegistryMap({
             activeLat={activeCluster?.lat ?? null}
             activeLng={activeCluster?.lng ?? null}
             clusterBounds={clusterBounds}
-            clusterKey={clusterKey}
+            resetViewToken={resetViewToken}
           />
-
-          <Pane name="story-points" style={{ zIndex: 430 }}>
-            {points.map((point) => {
-              const isActive = point.id === selectedStoryId
-              const isClusterActive = point.clusterId === selectedClusterId
-
-              return (
-                <CircleMarker
-                  center={[point.lat, point.lng]}
-                  eventHandlers={{
-                    click: () => {
-                      onEngage()
-                      onSelect(point.clusterId, point.id)
-                    },
-                    mouseout: () => onHover(null),
-                    mouseover: () => {
-                      onEngage()
-                      onHover(point.clusterId)
-                    },
-                  }}
-                  key={point.id}
-                  pane="story-points"
-                  pathOptions={{
-                    className: `map-marker map-marker--story${isClusterActive ? ' is-cluster-active' : ''}${isActive ? ' is-active' : ''}`,
-                    color: isActive ? '#ffffff' : '#f06ea8',
-                    fillColor: isActive ? '#ea4c93' : '#ffffff',
-                    fillOpacity: isClusterActive || isActive ? 0.98 : 0.84,
-                    opacity: point.openToChat ? 1 : 0.75,
-                    weight: point.openToChat ? 2.4 : 1.6,
-                  }}
-                  radius={isActive ? 8 : isClusterActive ? 6 : 5}
-                >
-                  {isActive ? (
-                    <Tooltip
-                      className="leaflet-tooltip--story"
-                      direction="top"
-                      offset={[0, -8]}
-                      opacity={1}
-                      permanent
-                    >
-                      <div className="story-tooltip">
-                        <strong>{point.areaLabel}</strong>
-                        <span>{point.postalHint}</span>
-                      </div>
-                    </Tooltip>
-                  ) : null}
-                </CircleMarker>
-              )
-            })}
-          </Pane>
 
           <Pane name="city-hubs" style={{ zIndex: 420 }}>
             {clusters.map((cluster, index) => {
               const isActive =
                 cluster.id === selectedClusterId || cluster.id === hoveredClusterId
-              const showLabel = isActive || (!highlighted && index < 5)
+              const showLabel = isActive || (!selectedClusterId && !hoveredClusterId && index < 5)
 
               return (
-                <CircleMarker
-                  center={[cluster.lat, cluster.lng]}
+                <Marker
                   eventHandlers={{
                     click: () => {
                       onEngage()
                       onSelect(cluster.id, cluster.stories[0]?.id ?? null)
                     },
                     mouseout: () => onHover(null),
-                    mouseover: () => {
-                      onEngage()
-                      onHover(cluster.id)
-                    },
+                    mouseover: () => onHover(cluster.id),
                   }}
+                  icon={buildCityHubIcon(cluster, isActive)}
                   key={cluster.id}
                   pane="city-hubs"
-                  pathOptions={{
-                    className: `map-marker map-marker--city${isActive ? ' is-active' : ''}`,
-                    color: isActive ? '#ea4c93' : 'rgba(240, 110, 168, 0.88)',
-                    fillColor: isActive
-                      ? 'rgba(240, 110, 168, 0.26)'
-                      : 'rgba(240, 110, 168, 0.12)',
-                    fillOpacity: 0.95,
-                    opacity: 1,
-                    weight: isActive ? 3 : 2,
-                  }}
-                  radius={radiusForCluster(cluster.stories.length)}
+                  position={[cluster.lat, cluster.lng]}
                 >
                   {showLabel ? (
                     <Tooltip
@@ -259,10 +264,50 @@ export function RegistryMap({
                       <div className="city-tooltip">{cluster.city}</div>
                     </Tooltip>
                   ) : null}
-                </CircleMarker>
+                </Marker>
               )
             })}
           </Pane>
+
+          {activeCluster ? (
+            <Pane name="story-points" style={{ zIndex: 430 }}>
+              {points.map((point) => {
+                const isActive = point.id === selectedStoryId
+
+                return (
+                  <Marker
+                    eventHandlers={{
+                      click: () => {
+                        onEngage()
+                        onSelect(point.clusterId, point.id)
+                      },
+                      mouseout: () => onHover(null),
+                      mouseover: () => onHover(point.clusterId),
+                    }}
+                    icon={buildStoryPointIcon(point, isActive)}
+                    key={point.id}
+                    pane="story-points"
+                    position={[point.lat, point.lng]}
+                  >
+                    {isActive ? (
+                      <Tooltip
+                        className="leaflet-tooltip--story"
+                        direction="top"
+                        offset={[0, -8]}
+                        opacity={1}
+                        permanent
+                      >
+                        <div className="story-tooltip">
+                          <strong>{point.areaLabel}</strong>
+                          <span>{point.postalHint}</span>
+                        </div>
+                      </Tooltip>
+                    ) : null}
+                  </Marker>
+                )
+              })}
+            </Pane>
+          ) : null}
         </MapContainer>
       </div>
     </div>

@@ -27,6 +27,8 @@ export interface StoryEntry {
   lng: number
   emotion: Emotion
   contextTags: ContextTag[]
+  themes: string[]
+  resonanceHints: string[]
   excerpt: string
   fullText: string
   language: string
@@ -41,5 +43,26 @@ export interface CityCluster {
   country: string
   lat: number
   lng: number
+  hasOpenConversation: boolean
+  availableLocalStories: number
   stories: StoryEntry[]
+}
+
+export interface StoryMatchResult {
+  story: StoryEntry
+  whySurfaced: string | null
+}
+
+export interface MapCityCluster extends CityCluster {
+  matches: StoryMatchResult[]
+}
+
+export interface RelatedCitySuggestion {
+  clusterId: string
+  storyId: string
+  city: string
+  country: string
+  areaLabel: string
+  reason: string
+  openToChat: boolean
 }
