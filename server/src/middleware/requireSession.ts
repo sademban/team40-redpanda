@@ -16,33 +16,42 @@ export async function resolveSessionUser(authorization?: string): Promise<Sessio
     return null
   }
 
+  let userId: string
+
   try {
-    const { userId } = verifyToken(authorization.slice(7))
-    return await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        isPersistent: true,
-      },
-    })
+    userId = verifyToken(authorization.slice(7)).userId
   } catch {
     return null
   }
+
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      isPersistent: true,
+    },
+  })
 }
 
 export async function requireSession(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const user = await resolveSessionUser(req.headers.authorization)
-
-  if (!user && !req.headers.authorization?.startsWith('Bearer ')) {
+  if (!req.headers.authorization?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing token' })
     return
   }
 
-  if (!user) {
-    res.status(401).json({ error: 'Invalid or expired token' })
+  try {
+    const user = await resolveSessionUser(req.headers.authorization)
+
+    if (!user) {
+      res.status(401).json({ error: 'Invalid or expired token' })
+      return
+    }
+
+    ;(req as SessionRequest).userId = user.id
+    next()
+  } catch (err) {
+    console.error('requireSession', err)
+    res.status(500).json({ error: 'Failed to validate session' })
     return
   }
-
-  ;(req as SessionRequest).userId = user.id
-  next()
 }

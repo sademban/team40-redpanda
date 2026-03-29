@@ -82,6 +82,35 @@ const CONVERSATION_SELECT = {
 type ChatRequestRecord = Prisma.ChatRequestGetPayload<{ select: typeof CHAT_REQUEST_SELECT }>
 type ConversationRecord = Prisma.ConversationGetPayload<{ select: typeof CONVERSATION_SELECT }>
 
+function isKnownRequestError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError
+}
+
+function isSerializationConflict(error: unknown): boolean {
+  return isKnownRequestError(error) && error.code === 'P2034'
+}
+
+async function runSerializableWithRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+): Promise<T> {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (!isSerializationConflict(error) || attempt === maxAttempts - 1) {
+        throw error
+      }
+
+      lastError = error
+    }
+  }
+
+  throw lastError
+}
+
 function requireString(value: unknown, field: string) {
   if (typeof value !== 'string' || !value.trim()) {
     throw new HttpError(400, `${field} is required`)
@@ -222,41 +251,58 @@ export async function createChatRequest(userId: string, input: CreateChatRequest
   const note = normalizeOptionalNote(input.note)
   const story = await requireChatTarget(storyId, userId)
 
-  const existingRequest = await prisma.chatRequest.findFirst({
-    where: {
-      storyId,
-      requesterId: userId,
-      recipientId: story.authorId!,
-      status: {
-        in: [ChatRequestStatus.pending, ChatRequestStatus.accepted],
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      status: true,
-    },
-  })
+  try {
+    const request = await runSerializableWithRetry(() =>
+      prisma.$transaction(
+        async (tx) => {
+          const existingRequest = await tx.chatRequest.findFirst({
+            where: {
+              storyId,
+              requesterId: userId,
+              recipientId: story.authorId!,
+              status: {
+                in: [ChatRequestStatus.pending, ChatRequestStatus.accepted],
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              status: true,
+            },
+          })
 
-  if (existingRequest?.status === ChatRequestStatus.pending) {
-    throw new HttpError(409, 'chat request is already pending for this story')
+          if (existingRequest?.status === ChatRequestStatus.pending) {
+            throw new HttpError(409, 'chat request is already pending for this story')
+          }
+
+          if (existingRequest?.status === ChatRequestStatus.accepted) {
+            throw new HttpError(409, 'a conversation already exists for this story')
+          }
+
+          return tx.chatRequest.create({
+            data: {
+              storyId,
+              requesterId: userId,
+              recipientId: story.authorId!,
+              note,
+            },
+            select: CHAT_REQUEST_SELECT,
+          })
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        },
+      ),
+    )
+
+    return toChatRequestSummary(request)
+  } catch (error) {
+    if (isSerializationConflict(error)) {
+      throw new HttpError(409, 'chat request changed concurrently, please retry')
+    }
+
+    throw error
   }
-
-  if (existingRequest?.status === ChatRequestStatus.accepted) {
-    throw new HttpError(409, 'a conversation already exists for this story')
-  }
-
-  const request = await prisma.chatRequest.create({
-    data: {
-      storyId,
-      requesterId: userId,
-      recipientId: story.authorId!,
-      note,
-    },
-    select: CHAT_REQUEST_SELECT,
-  })
-
-  return toChatRequestSummary(request)
 }
 
 export async function listChatRequests(userId: string) {
@@ -307,23 +353,50 @@ export async function acceptChatRequest(userId: string, requestId: string) {
     throw new HttpError(403, 'only the recipient can accept this chat request')
   }
 
-  if (request.status === ChatRequestStatus.accepted && request.conversation?.id) {
-    const conversation = await requireConversationParticipant(request.conversation.id, userId)
-    return toConversationSummary(conversation, userId)
-  }
-
-  if (request.status !== ChatRequestStatus.pending) {
-    throw new HttpError(409, `chat request is already ${request.status}`)
-  }
-
   const conversation = await prisma.$transaction(async (tx) => {
-    await tx.chatRequest.update({
-      where: { id: request.id },
+    const updated = await tx.chatRequest.updateMany({
+      where: {
+        id: request.id,
+        recipientId: userId,
+        status: ChatRequestStatus.pending,
+      },
       data: { status: ChatRequestStatus.accepted },
     })
 
-    return tx.conversation.create({
-      data: {
+    if (updated.count === 0) {
+      const latest = await tx.chatRequest.findUnique({
+        where: { id: request.id },
+        select: {
+          status: true,
+          requesterId: true,
+          recipientId: true,
+        },
+      })
+
+      if (!latest) {
+        throw new HttpError(404, 'chat request not found')
+      }
+
+      if (latest.status !== ChatRequestStatus.accepted) {
+        throw new HttpError(409, `chat request is already ${latest.status}`)
+      }
+
+      return tx.conversation.upsert({
+        where: { requestId: request.id },
+        update: {},
+        create: {
+          requestId: request.id,
+          requesterId: latest.requesterId,
+          recipientId: latest.recipientId,
+        },
+        select: CONVERSATION_SELECT,
+      })
+    }
+
+    return tx.conversation.upsert({
+      where: { requestId: request.id },
+      update: {},
+      create: {
         requestId: request.id,
         requesterId: request.requesterId,
         recipientId: request.recipientId,

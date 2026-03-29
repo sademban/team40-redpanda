@@ -7,7 +7,16 @@ import chatRouter from './routes/chat'
 
 const app = express()
 
-app.use(cors({ origin: 'http://localhost:5173' }))
+const corsOriginList = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean)
+
+app.use(
+  cors({
+    origin: corsOriginList.includes('*') ? true : corsOriginList,
+  }),
+)
 app.use(express.json())
 
 app.get('/health', (_req, res) => {
