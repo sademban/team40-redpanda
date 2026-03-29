@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useDeferredValue, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   cityClusters,
@@ -27,7 +27,7 @@ export function HomePage() {
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null)
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [showAmbientCopy, setShowAmbientCopy] = useState(true)
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasExploredRef = useRef(false)
   const deferredQuery = useDeferredValue(query)
   const normalizedQuery = deferredQuery.trim().toLowerCase()
   const inferredEmotion = normalizedQuery ? inferEmotion(normalizedQuery) : null
@@ -71,46 +71,14 @@ export function HomePage() {
     null
 
   const hasSelection = Boolean(selectedCluster && activeStory)
-
-  function clearIdleTimer() {
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current)
-      idleTimerRef.current = null
-    }
-  }
-
-  function scheduleAmbientReturn(delay = 4200) {
-    clearIdleTimer()
-
-    if (hasSelection) {
-      return
-    }
-
-    idleTimerRef.current = setTimeout(() => {
-      setShowAmbientCopy(true)
-    }, delay)
-  }
+  const showAmbientLayer = showAmbientCopy && !hasSelection
+  const showMapInvite = !hasSelection && !showAmbientLayer && hoveredClusterId === null
+  const showHoverStatus = !hasSelection && !showAmbientLayer && hoveredClusterId !== null
 
   function handleMapEngage() {
+    hasExploredRef.current = true
     setShowAmbientCopy(false)
-    scheduleAmbientReturn()
   }
-
-  useEffect(() => {
-    if (hasSelection) {
-      clearIdleTimer()
-      return
-    }
-
-    clearIdleTimer()
-    idleTimerRef.current = setTimeout(() => {
-      setShowAmbientCopy(true)
-    }, 1800)
-
-    return () => {
-      clearIdleTimer()
-    }
-  }, [hasSelection])
 
   function openWriter() {
     startTransition(() => {
@@ -136,15 +104,18 @@ export function HomePage() {
               value={query}
             />
             <FilterChips
-              onSelect={(value) => setSelectedEmotion(value as EmotionFilter)}
+              onSelect={(value) => {
+                handleMapEngage()
+                setSelectedEmotion(value as EmotionFilter)
+              }}
               options={landingEmotionOptions}
               selected={selectedEmotion}
             />
           </div>
 
-          <div className={`discover-copy${showAmbientCopy ? '' : ' is-hidden'}`}>
-            <p className="eyebrow">Map</p>
-            <h1 className="display">See where someone else left a feeling.</h1>
+          <div className={`discover-copy${showAmbientLayer ? '' : ' is-hidden'}`}>
+            <p className="eyebrow discover-copy__eyebrow">Map</p>
+            <h1 className="display discover-copy__headline">See where someone else left a feeling.</h1>
             <p className="discover-copy__body">
               Drift. Tap a city. Stay with a voice for a minute.
             </p>
@@ -155,11 +126,11 @@ export function HomePage() {
             hoveredClusterId={hoveredClusterId}
             onEngage={handleMapEngage}
             onHover={setHoveredClusterId}
+            showAmbientStatus={showHoverStatus}
             selectedStoryId={selectedStoryId}
             selectedClusterId={selectedCluster?.id ?? null}
             onSelect={(clusterId, storyId) => {
               setShowAmbientCopy(false)
-              clearIdleTimer()
               setSelectedClusterId(clusterId)
               const nextCluster = filteredClusters.find((cluster) => cluster.id === clusterId)
               setSelectedStoryId(storyId ?? nextCluster?.stories[0]?.id ?? null)
@@ -201,7 +172,6 @@ export function HomePage() {
                       aria-label="Close story sheet"
                       className="sheet-dismiss"
                       onClick={() => {
-                        handleMapEngage()
                         setSelectedClusterId(null)
                         setSelectedStoryId(null)
                         setHoveredClusterId(null)
@@ -258,7 +228,7 @@ export function HomePage() {
                   </div>
                 </div>
               </GlassPanel>
-            ) : (
+            ) : showMapInvite ? (
               <GlassPanel className="map-invite" flat>
                 <p className="panel-kicker">Start here</p>
                 <h2 className="section-title">Touch a city to open what was left there.</h2>
@@ -266,7 +236,7 @@ export function HomePage() {
                   The larger rings are cities. The smaller points are individual stories nearby.
                 </p>
               </GlassPanel>
-            )}
+            ) : null}
           </div>
         </div>
       </section>

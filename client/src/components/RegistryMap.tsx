@@ -31,6 +31,7 @@ interface RegistryMapProps {
   onEngage: () => void
   onHover: (clusterId: string | null) => void
   onSelect: (clusterId: string, storyId?: string | null) => void
+  showAmbientStatus: boolean
 }
 
 function radiusForCluster(count: number) {
@@ -94,6 +95,7 @@ export function RegistryMap({
   onEngage,
   onHover,
   onSelect,
+  showAmbientStatus,
 }: RegistryMapProps) {
   const highlighted =
     clusters.find((cluster) => cluster.id === hoveredClusterId) ??
@@ -131,16 +133,12 @@ export function RegistryMap({
   return (
     <div className="map-shell">
       <div className="map-frame">
-        <div className="map-chrome map-chrome--status">
-          <p className="map-chrome__eyebrow">
-            {highlighted ? `${highlighted.city}, ${highlighted.country}` : 'Stories across distance'}
-          </p>
-          <p className="map-chrome__title">
-            {highlighted
-              ? 'Open the little points to see each local story.'
-              : 'Drag the map. Tap a city. Then open the smaller points.'}
-          </p>
-        </div>
+        {showAmbientStatus && highlighted ? (
+          <div className="map-chrome map-chrome--status">
+            <p className="map-chrome__eyebrow">{highlighted.city}, {highlighted.country}</p>
+            <p className="map-chrome__title">Tap the ring to open what was left here.</p>
+          </div>
+        ) : null}
 
         <MapContainer
           attributionControl
@@ -180,11 +178,15 @@ export function RegistryMap({
                       onSelect(point.clusterId, point.id)
                     },
                     mouseout: () => onHover(null),
-                    mouseover: () => onHover(point.clusterId),
+                    mouseover: () => {
+                      onEngage()
+                      onHover(point.clusterId)
+                    },
                   }}
                   key={point.id}
                   pane="story-points"
                   pathOptions={{
+                    className: `map-marker map-marker--story${isClusterActive ? ' is-cluster-active' : ''}${isActive ? ' is-active' : ''}`,
                     color: isActive ? '#ffffff' : '#f06ea8',
                     fillColor: isActive ? '#ea4c93' : '#ffffff',
                     fillOpacity: isClusterActive || isActive ? 0.98 : 0.84,
@@ -227,11 +229,15 @@ export function RegistryMap({
                       onSelect(cluster.id, cluster.stories[0]?.id ?? null)
                     },
                     mouseout: () => onHover(null),
-                    mouseover: () => onHover(cluster.id),
+                    mouseover: () => {
+                      onEngage()
+                      onHover(cluster.id)
+                    },
                   }}
                   key={cluster.id}
                   pane="city-hubs"
                   pathOptions={{
+                    className: `map-marker map-marker--city${isActive ? ' is-active' : ''}`,
                     color: isActive ? '#ea4c93' : 'rgba(240, 110, 168, 0.88)',
                     fillColor: isActive
                       ? 'rgba(240, 110, 168, 0.26)'
