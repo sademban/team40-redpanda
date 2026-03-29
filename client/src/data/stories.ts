@@ -25,8 +25,10 @@ export const stories: StoryEntry[] = [
     id: 'nyc-pressure-1',
     city: 'New York',
     country: 'United States',
-    lat: 40.7128,
-    lng: -74.006,
+    areaLabel: 'Long Island City',
+    postalHint: '11101',
+    lat: 40.7447,
+    lng: -73.9485,
     emotion: 'pressure',
     contextTags: ['student', 'family-duty', 'distance-from-home'],
     excerpt:
@@ -42,8 +44,10 @@ export const stories: StoryEntry[] = [
     id: 'nyc-identity-1',
     city: 'New York',
     country: 'United States',
-    lat: 40.7128,
-    lng: -74.006,
+    areaLabel: 'Jackson Heights',
+    postalHint: '11372',
+    lat: 40.7557,
+    lng: -73.8831,
     emotion: 'identity',
     contextTags: ['new-city', 'distance-from-home'],
     excerpt:
@@ -59,8 +63,10 @@ export const stories: StoryEntry[] = [
     id: 'london-homesick-1',
     city: 'London',
     country: 'United Kingdom',
-    lat: 51.5072,
-    lng: -0.1276,
+    areaLabel: 'Wembley',
+    postalHint: 'HA9',
+    lat: 51.556,
+    lng: -0.279,
     emotion: 'homesick',
     contextTags: ['student', 'distance-from-home'],
     excerpt: 'I miss the version of silence that belongs to ghar.',
@@ -75,8 +81,10 @@ export const stories: StoryEntry[] = [
     id: 'london-pressure-1',
     city: 'London',
     country: 'United Kingdom',
-    lat: 51.5072,
-    lng: -0.1276,
+    areaLabel: 'Canary Wharf',
+    postalHint: 'E14',
+    lat: 51.5054,
+    lng: -0.0235,
     emotion: 'pressure',
     contextTags: ['work-pressure', 'family-duty'],
     excerpt:
@@ -92,8 +100,10 @@ export const stories: StoryEntry[] = [
     id: 'toronto-lonely-1',
     city: 'Toronto',
     country: 'Canada',
-    lat: 43.6532,
-    lng: -79.3832,
+    areaLabel: 'Parkdale',
+    postalHint: 'M6K',
+    lat: 43.6404,
+    lng: -79.4369,
     emotion: 'lonely',
     contextTags: ['new-city', 'distance-from-home'],
     excerpt:
@@ -109,8 +119,10 @@ export const stories: StoryEntry[] = [
     id: 'toronto-hope-1',
     city: 'Toronto',
     country: 'Canada',
-    lat: 43.6532,
-    lng: -79.3832,
+    areaLabel: 'North York',
+    postalHint: 'M2N',
+    lat: 43.7615,
+    lng: -79.4111,
     emotion: 'hope',
     contextTags: ['student', 'new-city'],
     excerpt:
@@ -126,8 +138,10 @@ export const stories: StoryEntry[] = [
     id: 'doha-family-duty-1',
     city: 'Doha',
     country: 'Qatar',
-    lat: 25.2854,
-    lng: 51.531,
+    areaLabel: 'Al Sadd',
+    postalHint: 'Zone 38',
+    lat: 25.2858,
+    lng: 51.5073,
     emotion: 'pressure',
     contextTags: ['work-pressure', 'family-duty'],
     excerpt:
@@ -143,8 +157,10 @@ export const stories: StoryEntry[] = [
     id: 'melbourne-hope-1',
     city: 'Melbourne',
     country: 'Australia',
-    lat: -37.8136,
-    lng: 144.9631,
+    areaLabel: 'Carlton',
+    postalHint: '3053',
+    lat: -37.8005,
+    lng: 144.9668,
     emotion: 'hope',
     contextTags: ['distance-from-home', 'new-city'],
     excerpt:
@@ -160,8 +176,10 @@ export const stories: StoryEntry[] = [
     id: 'sydney-homesick-1',
     city: 'Sydney',
     country: 'Australia',
-    lat: -33.8688,
-    lng: 151.2093,
+    areaLabel: 'Parramatta',
+    postalHint: '2150',
+    lat: -33.815,
+    lng: 151.0011,
     emotion: 'homesick',
     contextTags: ['student', 'distance-from-home'],
     excerpt:
@@ -177,8 +195,10 @@ export const stories: StoryEntry[] = [
     id: 'boston-pressure-1',
     city: 'Boston',
     country: 'United States',
-    lat: 42.3601,
-    lng: -71.0589,
+    areaLabel: 'Allston',
+    postalHint: '02134',
+    lat: 42.3539,
+    lng: -71.1328,
     emotion: 'pressure',
     contextTags: ['student', 'family-duty'],
     excerpt:
@@ -194,8 +214,10 @@ export const stories: StoryEntry[] = [
     id: 'dallas-work-1',
     city: 'Dallas',
     country: 'United States',
-    lat: 32.7767,
-    lng: -96.797,
+    areaLabel: 'Irving',
+    postalHint: '75039',
+    lat: 32.8913,
+    lng: -96.9587,
     emotion: 'lonely',
     contextTags: ['work-pressure', 'distance-from-home'],
     excerpt:
@@ -211,8 +233,10 @@ export const stories: StoryEntry[] = [
     id: 'lisbon-identity-1',
     city: 'Lisbon',
     country: 'Portugal',
-    lat: 38.7223,
-    lng: -9.1393,
+    areaLabel: 'Arroios',
+    postalHint: '1170',
+    lat: 38.7297,
+    lng: -9.1359,
     emotion: 'identity',
     contextTags: ['new-city', 'distance-from-home'],
     excerpt:
@@ -239,7 +263,7 @@ function normalize(input: string) {
 }
 
 function groupStoriesByCity(entries: StoryEntry[]) {
-  const groups = new Map<string, CityCluster>()
+  const groups = new Map<string, Omit<CityCluster, 'lat' | 'lng'> & { latSum: number; lngSum: number }>()
 
   for (const story of entries) {
     const key = `${story.city}-${story.country}`.toLowerCase().replaceAll(' ', '-')
@@ -247,6 +271,8 @@ function groupStoriesByCity(entries: StoryEntry[]) {
 
     if (existing) {
       existing.stories.push(story)
+      existing.latSum += story.lat
+      existing.lngSum += story.lng
       continue
     }
 
@@ -254,13 +280,22 @@ function groupStoriesByCity(entries: StoryEntry[]) {
       id: key,
       city: story.city,
       country: story.country,
-      lat: story.lat,
-      lng: story.lng,
+      latSum: story.lat,
+      lngSum: story.lng,
       stories: [story],
     })
   }
 
-  return [...groups.values()].sort((left, right) => {
+  return [...groups.values()]
+    .map((group) => ({
+      id: group.id,
+      city: group.city,
+      country: group.country,
+      lat: group.latSum / group.stories.length,
+      lng: group.lngSum / group.stories.length,
+      stories: group.stories,
+    }))
+    .sort((left, right) => {
     if (right.stories.length !== left.stories.length) {
       return right.stories.length - left.stories.length
     }

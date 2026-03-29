@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useState } from 'react'
+import { startTransition, useDeferredValue, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   cityClusters,
@@ -23,40 +23,42 @@ export function HomePage() {
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionFilter>('all')
   const [query, setQuery] = useState('')
   const [hoveredClusterId, setHoveredClusterId] = useState<string | null>(null)
-  const [selectedClusterId, setSelectedClusterId] = useState<string | null>(
-    cityClusters[0]?.id ?? null,
-  )
-  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(
-    cityClusters[0]?.stories[0]?.id ?? null,
-  )
+  const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null)
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const deferredQuery = useDeferredValue(query)
   const normalizedQuery = deferredQuery.trim().toLowerCase()
 
-  const filteredClusters = cityClusters
-    .map((cluster) => ({
-      ...cluster,
-      stories: cluster.stories.filter((story) => {
-        const matchesEmotion =
-          selectedEmotion === 'all' || story.emotion === selectedEmotion
-        const matchesQuery =
-          normalizedQuery.length === 0 ||
-          story.city.toLowerCase().includes(normalizedQuery) ||
-          story.country.toLowerCase().includes(normalizedQuery)
+  const filteredClusters = useMemo(
+    () =>
+      cityClusters
+        .map((cluster) => ({
+          ...cluster,
+          stories: cluster.stories.filter((story) => {
+            const matchesEmotion =
+              selectedEmotion === 'all' || story.emotion === selectedEmotion
+            const matchesQuery =
+              normalizedQuery.length === 0 ||
+              story.areaLabel.toLowerCase().includes(normalizedQuery) ||
+              story.postalHint.toLowerCase().includes(normalizedQuery) ||
+              story.city.toLowerCase().includes(normalizedQuery) ||
+              story.country.toLowerCase().includes(normalizedQuery)
 
-        return matchesEmotion && matchesQuery
-      }),
-    }))
-    .filter((cluster) => cluster.stories.length > 0)
+            return matchesEmotion && matchesQuery
+          }),
+        }))
+        .filter((cluster) => cluster.stories.length > 0),
+    [normalizedQuery, selectedEmotion],
+  )
 
   const selectedCluster =
-    filteredClusters.find((cluster) => cluster.id === selectedClusterId) ??
-    filteredClusters[0] ??
-    null
+    filteredClusters.find((cluster) => cluster.id === selectedClusterId) ?? null
 
   const activeStory =
     selectedCluster?.stories.find((story) => story.id === selectedStoryId) ??
     selectedCluster?.stories[0] ??
     null
+
+  const hasSelection = Boolean(selectedCluster && activeStory)
 
   function openWriter() {
     startTransition(() => {
@@ -94,40 +96,55 @@ export function HomePage() {
             clusters={filteredClusters}
             hoveredClusterId={hoveredClusterId}
             onHover={setHoveredClusterId}
-            onSelect={(clusterId) => {
+            selectedStoryId={selectedStoryId}
+            selectedClusterId={selectedCluster?.id ?? null}
+            onSelect={(clusterId, storyId) => {
               setSelectedClusterId(clusterId)
               const nextCluster = filteredClusters.find((cluster) => cluster.id === clusterId)
-              setSelectedStoryId(nextCluster?.stories[0]?.id ?? null)
+              setSelectedStoryId(storyId ?? nextCluster?.stories[0]?.id ?? null)
             }}
-            selectedClusterId={selectedCluster?.id ?? selectedClusterId}
           />
 
           <button className="floating-compose" onClick={openWriter} type="button">
             Say one true thing
           </button>
 
-          <GlassPanel className="discover-drawer" flat>
-            {selectedCluster && activeStory ? (
-              <>
+          <div className="discover-drawer-shell">
+            {hasSelection && selectedCluster && activeStory ? (
+              <GlassPanel className="discover-drawer" flat>
                 <div className="discover-drawer__header">
                   <div>
                     <p className="panel-kicker">
                       {selectedCluster.city}, {selectedCluster.country}
                     </p>
-                    <h2 className="section-title">Voices resting here.</h2>
+                    <h2 className="section-title">Stories waiting here.</h2>
                   </div>
 
-                  <button
-                    className="button button--secondary"
-                    onClick={() =>
-                      navigate('/match', {
-                        state: { suggestedStoryId: activeStory.id },
-                      })
-                    }
-                    type="button"
-                  >
-                    Explore matches
-                  </button>
+                  <div className="discover-drawer__actions">
+                    <button
+                      className="button button--secondary"
+                      onClick={() =>
+                        navigate('/match', {
+                          state: { suggestedStoryId: activeStory.id },
+                        })
+                      }
+                      type="button"
+                    >
+                      Explore matches
+                    </button>
+                    <button
+                      aria-label="Close story sheet"
+                      className="sheet-dismiss"
+                      onClick={() => {
+                        setSelectedClusterId(null)
+                        setSelectedStoryId(null)
+                        setHoveredClusterId(null)
+                      }}
+                      type="button"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
 
                 <div className="story-strip" role="list" aria-label="Stories in this city">
@@ -141,6 +158,9 @@ export function HomePage() {
                       <span className="story-snippet__mood">
                         {emotionLabels[story.emotion]}
                       </span>
+                      <span className="story-snippet__place">
+                        {story.areaLabel} · {story.postalHint}
+                      </span>
                       <p className="story-snippet__quote">"{story.excerpt}"</p>
                       <span className="story-snippet__status">
                         {story.openToChat ? 'Open to talk' : 'Story first'}
@@ -151,6 +171,9 @@ export function HomePage() {
 
                 <div className="story-focus">
                   <div className="story-focus__copy">
+                    <p className="story-focus__place">
+                      {activeStory.areaLabel} · {activeStory.postalHint}
+                    </p>
                     <p className="story-focus__lead">{activeStory.chatPrompt}</p>
                     <p className="story-focus__text">{activeStory.fullText}</p>
                   </div>
@@ -168,17 +191,17 @@ export function HomePage() {
                     </button>
                   </div>
                 </div>
-              </>
+              </GlassPanel>
             ) : (
-              <div className="empty-state">
-                <p className="panel-kicker">No city yet</p>
-                <h2 className="section-title">Try another feeling or place.</h2>
+              <GlassPanel className="map-invite" flat>
+                <p className="panel-kicker">Start here</p>
+                <h2 className="section-title">Touch a city to open what was left there.</h2>
                 <p className="section-copy">
-                  Nothing is gone. The map just needs a gentler search.
+                  The larger rings are cities. The smaller points are individual stories nearby.
                 </p>
-              </div>
+              </GlassPanel>
             )}
-          </GlassPanel>
+          </div>
         </div>
       </section>
     </PageShell>

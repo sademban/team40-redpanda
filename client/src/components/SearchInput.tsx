@@ -24,7 +24,7 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
       <input
         className="field__input"
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Search a city"
+        placeholder="Search an area or postal code"
         type="search"
         value={value}
       />

@@ -21,6 +21,8 @@ export interface StoryEntry {
   id: string
   city: string
   country: string
+  areaLabel: string
+  postalHint: string
   lat: number
   lng: number
   emotion: Emotion
