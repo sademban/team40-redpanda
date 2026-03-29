@@ -17,6 +17,9 @@ Echo is an anonymous community platform for diaspora users to share emotional ex
 - Prashant Shah
 - Nabin Sademba
 
+## Links
+- Live Link: https://staging.dbq22v3fz49mz.amplifyapp.com/
+- Drive Link: https://drive.google.com/drive/folders/19CXaawSNCyipmgB-rdYka55ncoLu-xP4?usp=drive_link
 ## Local setup
 
 ### Prerequisites
