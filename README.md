@@ -1,59 +1,112 @@
 # team40-redpanda
-# 🌌 Echo – Anonymous Emotional Support Platform
+US-Nepal Hackathon
 
-## 🧠 Overview
-Echo is an anonymous community platform designed for diaspora individuals to safely share emotional experiences and connect with others who truly understand them.
+## Overview
+Echo is an anonymous community platform for diaspora users to share emotional experiences and connect through emotion-aware matching.
 
-Unlike traditional platforms, Echo uses AI semantic matching to connect people based on shared emotions—not just similar situations.
+## Tech stack
+- Frontend: React, TypeScript, Vite
+- Backend: Node.js, Express, TypeScript
+- Database: PostgreSQL
+- ORM: Prisma
+- Matching: pgvector + embeddings
 
----
-
-## 💡 What Echo Does
-
-### 🌍 Anonymous Community
-Echo provides a safe, judgment-free space where users can share personal stories without revealing their identity.
-
-### 🤖 AI Semantic Matching
-Using AI-powered embeddings, Echo connects users experiencing similar emotions, enabling deeper and more meaningful connections.
-
-### 🫂 Who It Helps
-Diaspora individuals navigating identity, cultural pressure, and belonging who are seeking authentic connection.
-
-### ❤️ Why It Matters
-Echo transforms the phrase "You're not alone" into a real experience by connecting people who genuinely understand each other.
-
----
-
-##✨ Features
-- 🔐 Fully anonymous interaction (no sign-up required)
-- 🧠 Emotion-based AI matching (not keyword-based)
-- 💬 Real-time or async conversations
-- 👥Safe and inclusive community design
-
----
-
-## 🏗️ Tech Stack
-
-### Core Technologies
-- **Frontend:** React 19, TypeScript, Vite, React Router  
-- **Backend:** Node.js (Express)  
-- **Database:** PostgreSQL  
-- **ORM:** Prisma  
-- **AI / Semantic Layer:** pgvector, OpenRouter embeddings  
-- **Authentication:** Anonymous sessions + JWT  
-
-
----
-
-## 👥 Team Members & Roles
+## Team
 - Divas KC
 - Jasmine Jirel
 - Prashant Shah
 - Nabin Sademba
 
-## ⚙️ Setup & Run Instructions
+## Local setup
 
-### 1. Clone the repository
+### Prerequisites
+- Node.js 22+
+- npm
+- Docker Desktop (or Docker Engine + Compose)
+
+### 1. Install dependencies
 ```bash
-git clone https://github.com/sademban/team40-redpanda.git
-cd echo 
+cd server && npm install
+cd ../client && npm install
+```
+
+### 2. Configure environment files
+Backend:
+```bash
+cd server
+cp .env.example .env
+```
+
+For local development:
+- `DATABASE_URL=postgresql://echo:echo@localhost:5433/echo`
+- `CORS_ORIGIN=http://localhost:5173`
+
+Frontend:
+```bash
+cd client
+cp .env.example .env
+```
+
+For local development:
+- `VITE_API_BASE_URL=http://localhost:3001`
+
+### 3. Start local database
+```bash
+cd server
+docker compose up -d db
+```
+
+### 4. Run migrations and start backend
+```bash
+cd server
+npx prisma migrate deploy
+npm run dev
+```
+
+### 5. Start frontend
+```bash
+cd client
+npm run dev
+```
+
+Local URLs:
+- Frontend: `http://localhost:5173`
+- Backend health: `http://localhost:3001/health`
+
+## Database seeding
+The backend seed script creates:
+- 40 persistent users
+- 40 stories (1 per user)
+- a credentials CSV for login testing
+
+Important: seeding is destructive for app data. It clears `Message`, `Conversation`, `ChatRequest`, `Story`, and `User` before inserting fresh data.
+
+### Seed on EC2 (staging/production container)
+```bash
+cd /opt/echo/server
+sudo docker compose -f docker-compose.deploy.yml exec -T api node dist/prisma/seed.js
+```
+
+Copy generated credentials to host:
+```bash
+API_CID=$(sudo docker compose -f /opt/echo/server/docker-compose.deploy.yml ps -q api)
+sudo docker cp "$API_CID:/app/prisma/seed-users-credentials.csv" /opt/echo/server/seed-users-credentials.csv
+```
+
+### Seed locally
+```bash
+cd server
+npm run build
+node dist/prisma/seed.js
+```
+
+### Seeded credentials
+- CSV path: `server/prisma/seed-users-credentials.csv`
+- Default password: `EchoSeed!2026`
+- Email pattern: `seed.user01@echo.local` to `seed.user40@echo.local`
+- Handle pattern: `echo-seed-01` to `echo-seed-40`
+
+To override the default seed password:
+```bash
+SEED_USER_PASSWORD='YourStrongSeedPassword123!' node dist/prisma/seed.js
+```
