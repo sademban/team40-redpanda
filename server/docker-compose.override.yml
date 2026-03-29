@@ -1,0 +1,9 @@
+services:
+  api:
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+

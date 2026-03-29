@@ -1,6 +1,7 @@
 services:
   db:
     image: pgvector/pgvector:pg16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: echo
       POSTGRES_PASSWORD: echo
@@ -9,6 +10,27 @@ services:
       - '5433:5432'
     volumes:
       - echo_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U echo -d echo']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://echo:echo@db:5432/echo
+      PORT: 3001
+    ports:
+      - '3001:3001'
 
 volumes:
   echo_db:

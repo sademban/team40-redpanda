@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { embed } from './embeddingService'
 
@@ -30,11 +31,11 @@ export async function findMatch(text: string): Promise<StoryRow | null> {
   const embedding = await embed(text)
   const vectorStr = `[${embedding.join(',')}]`
 
-  const results = await prisma.$queryRawUnsafe<StoryRow[]>(`
-    SELECT ${SELECT_COLS}
+  const results = await prisma.$queryRaw<StoryRow[]>(Prisma.sql`
+    SELECT ${Prisma.raw(SELECT_COLS)}
     FROM "Story"
     WHERE embedding IS NOT NULL
-    ORDER BY embedding <=> '${vectorStr}'::vector
+    ORDER BY embedding <=> CAST(${vectorStr} AS vector)
     LIMIT 1
   `)
 
@@ -47,16 +48,17 @@ export async function findChatMatches(
 ): Promise<{ suggested: StoryRow | null; incoming: StoryRow | null }> {
   const embedding = await embed(text)
   const vectorStr = `[${embedding.join(',')}]`
+  const excludeClause = excludeId
+    ? Prisma.sql`AND id != ${excludeId}`
+    : Prisma.empty
 
-  const excludeClause = excludeId ? `AND id != '${excludeId}'` : ''
-
-  const results = await prisma.$queryRawUnsafe<StoryRow[]>(`
-    SELECT ${SELECT_COLS}
+  const results = await prisma.$queryRaw<StoryRow[]>(Prisma.sql`
+    SELECT ${Prisma.raw(SELECT_COLS)}
     FROM "Story"
     WHERE embedding IS NOT NULL
       AND "openToChat" = true
       ${excludeClause}
-    ORDER BY embedding <=> '${vectorStr}'::vector
+    ORDER BY embedding <=> CAST(${vectorStr} AS vector)
     LIMIT 2
   `)
 
