@@ -26,6 +26,12 @@ export const contextLabels: Record<ContextTag, string> = {
   'distance-from-home': 'Far from home',
 }
 
+const contextLabelLookup = contextLabels as Record<string, string>
+
+export function getContextLabel(tag: string) {
+  return contextLabelLookup[tag] ?? tag.replace(/-/g, ' ')
+}
+
 export const defaultEntry =
   "I feel like I'm doing everything right and still falling apart."
 
@@ -59,7 +65,7 @@ function includesAnyToken(haystack: string, tokens: string[]) {
 function getStorySignals(story: StoryEntry) {
   return normalize(
     [
-      story.contextTags.map((tag) => contextLabels[tag]).join(' '),
+      story.contextTags.map((tag) => getContextLabel(tag)).join(' '),
       story.excerpt,
       story.fullText,
       story.chatPrompt,
@@ -88,8 +94,8 @@ function scoreStoryForEntry(story: StoryEntry, entry: string, inferredEmotion: E
   }
 
   const matchingContext = story.contextTags.find((tag) =>
-    includesAnyToken(contextLabels[tag], queryTokens) ||
-    includesQuery(contextLabels[tag], normalizedEntry),
+    includesAnyToken(getContextLabel(tag), queryTokens) ||
+    includesQuery(getContextLabel(tag), normalizedEntry),
   )
 
   if (matchingContext) {
@@ -118,12 +124,12 @@ function buildWhySurfaced(
   }
 
   const contextMatch = story.contextTags.find((tag) => {
-    const label = contextLabels[tag]
+    const label = getContextLabel(tag)
     return includesQuery(label, normalizedQuery) || includesAnyToken(label, queryTokens)
   })
 
   if (contextMatch) {
-    return `Holds ${contextLabels[contextMatch].toLowerCase()}.`
+    return `Holds ${getContextLabel(contextMatch).toLowerCase()}.`
   }
 
   if (includesQuery(story.excerpt, normalizedQuery) || includesQuery(story.chatPrompt, normalizedQuery)) {
@@ -148,7 +154,7 @@ function getSharedContextTags(left: StoryEntry, right: StoryEntry) {
 function buildRelatedReason(source: StoryEntry, candidate: StoryEntry) {
   const sharedContext = getSharedContextTags(source, candidate)
   if (sharedContext.length > 0) {
-    return `Also carries ${contextLabels[sharedContext[0]].toLowerCase()}.`
+    return `Also carries ${getContextLabel(sharedContext[0]).toLowerCase()}.`
   }
 
   if (candidate.emotion === source.emotion) {

@@ -1,8 +1,8 @@
 import { startTransition, useDeferredValue, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  contextLabels,
   emotionLabels,
+  getContextLabel,
   getMapClusters,
   getRelatedCitySuggestions,
 } from '../data/stories'
@@ -298,7 +298,7 @@ export function HomePage() {
                       <div className="story-focus__tags" aria-label="Context tags">
                         {activeStory.contextTags.map((tag) => (
                           <span className="story-focus__tag" key={tag}>
-                            {contextLabels[tag]}
+                            {getContextLabel(tag)}
                           </span>
                         ))}
                       </div>
