@@ -23,6 +23,9 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+client/.env
+client/.env.*
+!client/.env.example
 
 # Local infrastructure (do not push)
 iac/

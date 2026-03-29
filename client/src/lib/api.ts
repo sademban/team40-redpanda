@@ -29,6 +29,20 @@ interface ChatMatches {
   incoming: StoryEntry | null
 }
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
+
+function buildUrl(path: string) {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+
+  if (!API_BASE_URL) {
+    return path
+  }
+
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 async function request<T>(path: string, options: RequestOptions = {}) {
   const headers = new Headers(options.headers)
 
@@ -40,7 +54,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     headers.set('Authorization', `Bearer ${options.token}`)
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(buildUrl(path), {
     ...options,
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),

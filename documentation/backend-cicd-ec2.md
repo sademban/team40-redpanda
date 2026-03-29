@@ -42,12 +42,16 @@ DATABASE_URL=postgresql://echo:echo@db:5432/echo
 JWT_SECRET=replace-with-strong-random-secret
 OPENROUTER_API_KEY=replace-with-real-key
 PORT=3001
+CORS_ORIGIN=https://staging.dbq22v3fz49mz.amplifyapp.com
+API_DOMAIN=api-staging.yourdomain.com
+ACME_EMAIL=you@yourdomain.com
 EOF
 sudo chown -R ubuntu:ubuntu /opt/echo
 ```
 
 ## Notes
 
-- Workflow deploy command is `docker compose up -d --build --remove-orphans` in `/opt/echo/server`.
-- Health check is verified via `http://127.0.0.1:3001/health` on the EC2 host.
-
+- Workflow deploy command is `docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans` in `/opt/echo/server`.
+- Health check is verified via `http://127.0.0.1/health` through Caddy on the EC2 host.
+- DNS is required: create an `A` record for `API_DOMAIN` pointing to EC2 public IP.
+- EC2 security group must allow inbound `80/tcp` and `443/tcp`.

@@ -68,7 +68,11 @@ jobs:
               exit 1
             fi
 
-            sudo docker compose up -d --build --remove-orphans
-            sleep 5
-            curl -fsS http://127.0.0.1:3001/health
+            if ! grep -q '^API_DOMAIN=' .env; then
+              echo "Missing API_DOMAIN in /opt/echo/server/.env."
+              exit 1
+            fi
 
+            sudo docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans
+            sleep 5
+            curl -fsS http://127.0.0.1/health
