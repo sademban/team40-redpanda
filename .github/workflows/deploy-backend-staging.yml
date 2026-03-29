@@ -1,0 +1,74 @@
+name: Deploy Backend (Staging)
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - "server/**"
+      - ".github/workflows/deploy-backend-staging.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create server bundle
+        run: tar -czf server.tgz server
+
+      - name: Upload bundle to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_EC2_HOST }}
+          username: ${{ secrets.STAGING_EC2_SSH_USER }}
+          key: ${{ secrets.STAGING_EC2_SSH_KEY }}
+          port: ${{ secrets.STAGING_EC2_SSH_PORT || 22 }}
+          source: "server.tgz"
+          target: "/tmp"
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_EC2_HOST }}
+          username: ${{ secrets.STAGING_EC2_SSH_USER }}
+          key: ${{ secrets.STAGING_EC2_SSH_KEY }}
+          port: ${{ secrets.STAGING_EC2_SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Docker is not installed on target host."
+              exit 1
+            fi
+
+            if ! docker compose version >/dev/null 2>&1; then
+              echo "Docker Compose v2 is not installed on target host."
+              exit 1
+            fi
+
+            sudo mkdir -p /opt/echo
+            sudo tar -xzf /tmp/server.tgz -C /opt/echo
+            sudo chown -R "$USER:$USER" /opt/echo
+
+            cd /opt/echo/server
+
+            if [ ! -f .env ]; then
+              echo "Missing /opt/echo/server/.env on EC2. Create it before deploying."
+              exit 1
+            fi
+
+            sudo docker compose up -d --build --remove-orphans
+            sleep 5
+            curl -fsS http://127.0.0.1:3001/health
+
