@@ -10,32 +10,88 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  handle    String   @unique
-  createdAt DateTime @default(now())
-  stories   Story[]
+  id                    String         @id @default(uuid())
+  handle                String         @unique
+  email                 String?        @unique
+  passwordHash          String?
+  isPersistent          Boolean        @default(false)
+  createdAt             DateTime       @default(now())
+  stories               Story[]
+  sentChatRequests      ChatRequest[]  @relation("ChatRequestRequester")
+  receivedChatRequests  ChatRequest[]  @relation("ChatRequestRecipient")
+  startedConversations  Conversation[] @relation("ConversationStarter")
+  joinedConversations   Conversation[] @relation("ConversationRecipient")
+  messages              Message[]
 }
 
 model Story {
-  id          String   @id @default(uuid())
-  city        String
-  country     String
-  areaLabel   String
-  postalHint  String
-  lat         Float
-  lng         Float
-  emotion     Emotion
-  contextTags String[]
-  excerpt     String   @db.VarChar(300)
-  fullText    String   @db.Text
-  language    String
-  year        Int
-  openToChat  Boolean  @default(false)
-  chatPrompt  String
-  embedding   Unsupported("vector(2048)")?
-  authorId    String?
-  author      User?    @relation(fields: [authorId], references: [id])
-  createdAt   DateTime @default(now())
+  id           String         @id @default(uuid())
+  city         String
+  country      String
+  areaLabel    String
+  postalHint   String
+  lat          Float
+  lng          Float
+  emotion      Emotion
+  contextTags  String[]
+  excerpt      String         @db.VarChar(300)
+  fullText     String         @db.Text
+  language     String
+  year         Int
+  openToChat   Boolean        @default(false)
+  chatPrompt   String
+  embedding    Unsupported("vector(2048)")?
+  authorId     String?
+  author       User?          @relation(fields: [authorId], references: [id])
+  createdAt    DateTime       @default(now())
+  chatRequests ChatRequest[]
+}
+
+model ChatRequest {
+  id          String            @id @default(uuid())
+  storyId     String
+  requesterId String
+  recipientId String
+  note        String?           @db.VarChar(500)
+  status      ChatRequestStatus @default(pending)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  story       Story             @relation(fields: [storyId], references: [id])
+  requester   User              @relation("ChatRequestRequester", fields: [requesterId], references: [id])
+  recipient   User              @relation("ChatRequestRecipient", fields: [recipientId], references: [id])
+  conversation Conversation?
+
+  @@index([storyId])
+  @@index([requesterId, status])
+  @@index([recipientId, status])
+}
+
+model Conversation {
+  id          String      @id @default(uuid())
+  requestId   String      @unique
+  requesterId String
+  recipientId String
+  createdAt   DateTime    @default(now())
+  request     ChatRequest @relation(fields: [requestId], references: [id])
+  requester   User        @relation("ConversationStarter", fields: [requesterId], references: [id])
+  recipient   User        @relation("ConversationRecipient", fields: [recipientId], references: [id])
+  messages    Message[]
+
+  @@index([requesterId])
+  @@index([recipientId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  text           String       @db.Text
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
 }
 
 enum Emotion {
@@ -44,4 +100,11 @@ enum Emotion {
   lonely
   identity
   hope
+}
+
+enum ChatRequestStatus {
+  pending
+  accepted
+  declined
+  cancelled
 }

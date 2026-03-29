@@ -27,8 +27,6 @@ export interface StoryEntry {
   lng: number
   emotion: Emotion
   contextTags: ContextTag[]
-  themes: string[]
-  resonanceHints: string[]
   excerpt: string
   fullText: string
   language: string
@@ -37,15 +35,34 @@ export interface StoryEntry {
   chatPrompt: string
 }
 
-export interface CityCluster {
+export interface CreateStoryPayload {
+  city: string
+  country: string
+  areaLabel: string
+  postalHint: string
+  lat: number
+  lng: number
+  emotion: Emotion
+  contextTags: ContextTag[]
+  excerpt: string
+  fullText: string
+  language: string
+  openToChat: boolean
+  chatPrompt: string
+}
+
+export interface StoryCluster {
   id: string
   city: string
   country: string
   lat: number
   lng: number
+  stories: StoryEntry[]
+}
+
+export interface CityCluster extends StoryCluster {
   hasOpenConversation: boolean
   availableLocalStories: number
-  stories: StoryEntry[]
 }
 
 export interface StoryMatchResult {

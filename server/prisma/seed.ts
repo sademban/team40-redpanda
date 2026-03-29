@@ -1,8 +1,16 @@
 import 'dotenv/config'
 import { PrismaClient, Emotion } from '@prisma/client'
 import { embed } from '../src/services/embeddingService'
+import { hashPassword } from '../src/services/passwordService'
 
 const prisma = new PrismaClient()
+
+const sampleAuthors = [
+  { handle: 'steady-harbor', email: 'author.one@echo.local' },
+  { handle: 'quiet-atlas', email: 'author.two@echo.local' },
+  { handle: 'north-lantern', email: 'author.three@echo.local' },
+  { handle: 'soft-current', email: 'author.four@echo.local' },
+] as const
 
 const stories = [
   {
@@ -125,8 +133,31 @@ const stories = [
 ]
 
 async function main() {
-  console.log('Clearing existing stories...')
+  console.log('Clearing existing chat data and stories...')
+  await prisma.message.deleteMany()
+  await prisma.conversation.deleteMany()
+  await prisma.chatRequest.deleteMany()
   await prisma.story.deleteMany()
+
+  console.log(`Ensuring ${sampleAuthors.length} sample persistent authors...`)
+  const seededAuthors = await Promise.all(
+    sampleAuthors.map((author) =>
+      prisma.user.upsert({
+        where: { email: author.email },
+        update: {
+          handle: author.handle,
+          passwordHash: hashPassword('localpass123'),
+          isPersistent: true,
+        },
+        create: {
+          handle: author.handle,
+          email: author.email,
+          passwordHash: hashPassword('localpass123'),
+          isPersistent: true,
+        },
+      }),
+    ),
+  )
 
   console.log(`Seeding ${stories.length} stories...`)
 
@@ -140,7 +171,13 @@ async function main() {
       console.error(` FAILED (${err})`)
     }
 
-    const story = await prisma.story.create({ data })
+    const author = seededAuthors[i % seededAuthors.length]
+    const story = await prisma.story.create({
+      data: {
+        ...data,
+        authorId: author.id,
+      },
+    })
 
     if (embedding) {
       const vectorStr = `[${embedding.join(',')}]`

@@ -9,14 +9,14 @@ import '@fontsource/jetbrains-mono/500.css'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
 import App from './App.tsx'
-import { AppSessionProvider } from './auth/session.tsx'
+import { AppProvider } from './contexts/AppContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AppSessionProvider>
+      <AppProvider>
         <App />
-      </AppSessionProvider>
+      </AppProvider>
     </BrowserRouter>
   </StrictMode>,
 )

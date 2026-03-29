@@ -1,6 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppSession } from '../auth/session.tsx'
 import {
   contextLabels,
   emotionLabels,
@@ -12,6 +11,7 @@ import { GlassPanel } from '../components/GlassPanel'
 import { PageShell } from '../components/PageShell'
 import { RegistryMap } from '../components/RegistryMap'
 import { SearchInput } from '../components/SearchInput'
+import { useApp } from '../contexts/AppContext'
 import type { Emotion } from '../types/story'
 
 const MAP_INTRO_KEY = 'echo-map-intro-seen'
@@ -32,8 +32,8 @@ function getInitialIntroVisibility() {
 }
 
 export function HomePage() {
-  const { session } = useAppSession()
   const navigate = useNavigate()
+  const { clusters, dataError, isBootstrapping, isRefreshingStories } = useApp()
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionFilter>('all')
   const [query, setQuery] = useState('')
   const [hoveredClusterId, setHoveredClusterId] = useState<string | null>(null)
@@ -45,8 +45,8 @@ export function HomePage() {
   const normalizedQuery = deferredQuery.trim()
 
   const filteredClusters = useMemo(
-    () => getMapClusters(selectedEmotion, normalizedQuery),
-    [normalizedQuery, selectedEmotion],
+    () => getMapClusters(clusters, selectedEmotion, normalizedQuery),
+    [clusters, normalizedQuery, selectedEmotion],
   )
 
   const selectedCluster =
@@ -193,7 +193,6 @@ export function HomePage() {
             showAmbientStatus={showHoverStatus}
             selectedStoryId={selectedStoryId}
             selectedClusterId={selectedCluster?.id ?? null}
-            userLocation={session.profile}
           />
 
           <div className="discover-drawer-shell">
@@ -205,8 +204,8 @@ export function HomePage() {
                   Leave one true line behind. The next person may need exactly that.
                 </p>
                 <div className="action-row">
-                  <button
-                    className="button button--primary"
+                    <button
+                      className="button button--primary"
                     onClick={() =>
                       openWriter({
                         entry: normalizedQuery || undefined,
@@ -214,11 +213,15 @@ export function HomePage() {
                       })
                     }
                     type="button"
-                  >
-                    Write your own
-                  </button>
-                </div>
-              </GlassPanel>
+                    >
+                      Write your own
+                    </button>
+                  </div>
+                  {isBootstrapping || isRefreshingStories ? (
+                    <p className="section-copy">Loading the map from the backend.</p>
+                  ) : null}
+                  {dataError ? <p className="account-feedback account-feedback--error">{dataError}</p> : null}
+                </GlassPanel>
             ) : hasSelection && selectedCluster && activeStory && activeMatch ? (
               <GlassPanel className="discover-drawer" flat>
                 <div className="discover-drawer__header">

@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useAppSession } from '../auth/session.tsx'
 import { MoodBackground, type MoodVariant } from './MoodBackground'
+import { useApp } from '../contexts/AppContext'
+import { listChatRequests } from '../lib/api'
 
 interface PageShellProps {
   variant: MoodVariant
@@ -13,6 +14,7 @@ const navigationItems = [
   { to: '/', label: 'Map' },
   { to: '/write', label: 'Write' },
   { to: '/match', label: 'Matches' },
+  { to: '/account', label: 'Account' },
   { to: '/about', label: 'About' },
 ]
 
@@ -21,20 +23,39 @@ export function PageShell({
   children,
   note = 'One true thing can be enough.',
 }: PageShellProps) {
-  const { session } = useAppSession()
   const location = useLocation()
+  const { user, token, isBootstrapping } = useApp()
   const isMapRoute = location.pathname === '/'
   const navigationLinks = navigationItems.filter((item) => item.to !== '/')
-  const profile = session.profile
-  const showProfileLink = session.isAuthenticated && session.onboardingComplete && profile
-  const initials = profile
-    ? profile.displayName
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase() ?? '')
-        .join('')
-    : ''
+  const [pendingInboxCount, setPendingInboxCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadInboxCount() {
+      if (!token) {
+        setPendingInboxCount(0)
+        return
+      }
+
+      try {
+        const requests = await listChatRequests(token)
+        if (!cancelled) {
+          setPendingInboxCount(requests.incoming.filter((request) => request.status === 'pending').length)
+        }
+      } catch {
+        if (!cancelled) {
+          setPendingInboxCount(0)
+        }
+      }
+    }
+
+    void loadInboxCount()
+
+    return () => {
+      cancelled = true
+    }
+  }, [location.pathname, token])
 
   return (
     <div className="page-shell">
@@ -48,18 +69,24 @@ export function PageShell({
             </span>
           </NavLink>
 
-          <div className="app-topbar__right">
+          <div className="app-topbar__meta">
             <p className="app-topbar__note">{note}</p>
-
-            {showProfileLink ? (
-              <NavLink
-                aria-label="Open profile"
-                className={`profile-link${location.pathname === '/profile' ? ' active' : ''}`}
-                to="/profile"
-              >
-                <span className="profile-link__avatar">{initials}</span>
+            <div className="app-topbar__right">
+              {user ? (
+                <NavLink aria-label="Open inbox" className="inbox-link" to="/account">
+                  <span className="inbox-link__icon" aria-hidden="true" />
+                  {pendingInboxCount > 0 ? <span className="inbox-link__badge">{pendingInboxCount}</span> : null}
+                </NavLink>
+              ) : null}
+              <NavLink className="account-pill" to="/account">
+                <span className="account-pill__handle">
+                  {isBootstrapping ? 'Connecting' : user?.handle ?? 'guest'}
+                </span>
+                <span className="account-pill__status">
+                  {user?.isPersistent ? 'saved' : 'guest'}
+                </span>
               </NavLink>
-            ) : null}
+            </div>
           </div>
         </div>
       </header>

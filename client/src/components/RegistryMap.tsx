@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { divIcon, type LatLngTuple } from 'leaflet'
-import type { StoredProfile } from '../auth/session.tsx'
 import {
   MapContainer,
   Marker,
@@ -37,7 +36,6 @@ interface RegistryMapProps {
   onSelect: (clusterId: string, storyId?: string | null) => void
   resetViewToken: number
   showAmbientStatus: boolean
-  userLocation?: StoredProfile | null
 }
 
 const WORLD_BOUNDS: [LatLngTuple, LatLngTuple] = [
@@ -82,30 +80,6 @@ function buildStoryPointIcon(point: StoryPoint, isActive: boolean) {
     iconAnchor: [size / 2, size / 2],
     iconSize: [size, size],
     tooltipAnchor: [0, -(size / 2)],
-  })
-}
-
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
-function buildUserLocationIcon(profile: StoredProfile) {
-  return divIcon({
-    className: 'map-div-icon map-div-icon--user',
-    html: `
-      <span class="map-user-marker">
-        <span class="map-user-marker__halo"></span>
-        <span class="map-user-marker__core">${getInitials(profile.displayName)}</span>
-        <span class="map-user-marker__label">You</span>
-      </span>
-    `,
-    iconAnchor: [19, 36],
-    iconSize: [38, 52],
   })
 }
 
@@ -193,7 +167,6 @@ export function RegistryMap({
   onSelect,
   resetViewToken,
   showAmbientStatus,
-  userLocation,
 }: RegistryMapProps) {
   const highlighted =
     clusters.find((cluster) => cluster.id === hoveredClusterId) ??
@@ -268,17 +241,6 @@ export function RegistryMap({
             clusterBounds={clusterBounds}
             resetViewToken={resetViewToken}
           />
-
-          {userLocation ? (
-            <Pane name="user-home" style={{ zIndex: 440 }}>
-              <Marker
-                icon={buildUserLocationIcon(userLocation)}
-                interactive={false}
-                pane="user-home"
-                position={[userLocation.lat, userLocation.lng]}
-              />
-            </Pane>
-          ) : null}
 
           <Pane name="city-hubs" style={{ zIndex: 420 }}>
             {clusters.map((cluster, index) => {

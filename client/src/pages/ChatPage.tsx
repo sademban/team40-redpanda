@@ -1,129 +1,184 @@
-import { useState } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { defaultEntry, getStoryById } from '../data/stories'
+import { useEffect, useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import {
+  getConversationMessages,
+  sendConversationMessage,
+} from '../lib/api'
+import type {
+  ConversationMessage,
+  ConversationSummary,
+} from '../types/chat'
 import { GlassPanel } from '../components/GlassPanel'
 import { PageShell } from '../components/PageShell'
-
-type ChatMode = 'suggested' | 'incoming'
-
-interface ChatLocationState {
-  entry?: string
-  mode?: ChatMode
-}
-
-interface ChatMessage {
-  id: string
-  sender: 'them' | 'you'
-  text: string
-}
-
-function seedMessages(mode: ChatMode, entry: string, prompt: string): ChatMessage[] {
-  return [
-    {
-      id: 'them-1',
-      sender: 'them',
-      text: prompt,
-    },
-    {
-      id: 'them-2',
-      sender: 'them',
-      text:
-        mode === 'incoming'
-          ? 'You do not have to answer perfectly. Start wherever feels honest.'
-          : `I stayed with what you wrote: "${entry}". You can keep this small.`,
-    },
-  ]
-}
+import { useApp } from '../contexts/AppContext'
 
 export function ChatPage() {
   const navigate = useNavigate()
-  const { storyId } = useParams()
-  const location = useLocation()
-  const state = location.state as ChatLocationState | null
-  const story = getStoryById(storyId)
-  const safeStory = story ?? getStoryById('nyc-pressure-1')
-  const entry = state?.entry?.trim() || defaultEntry
-  const mode = state?.mode ?? 'suggested'
-  const [draft, setDraft] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    seedMessages(mode, entry, safeStory?.chatPrompt ?? 'Start anywhere that feels true.'),
-  )
+  const { conversationId } = useParams()
+  const { token, user } = useApp()
 
-  if (!story || !safeStory) {
-    return <Navigate to="/match" replace />
+  const [conversation, setConversation] = useState<ConversationSummary | null>(null)
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [draft, setDraft] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isSending, setIsSending] = useState(false)
+
+  useEffect(() => {
+    const currentToken = token
+    const currentConversationId = conversationId
+
+    if (!currentToken || !currentConversationId) {
+      return
+    }
+
+    const safeToken = currentToken
+    const safeConversationId = currentConversationId
+
+    let cancelled = false
+
+    async function loadConversation() {
+      try {
+        const payload = await getConversationMessages(safeToken, safeConversationId)
+        if (!cancelled) {
+          setConversation(payload.conversation)
+          setMessages(payload.messages)
+          setError(null)
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation')
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadConversation()
+    const intervalId = window.setInterval(() => {
+      void loadConversation()
+    }, 5000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [conversationId, token])
+
+  if (!conversationId) {
+    return <Navigate to="/account" replace />
   }
 
-  function sendMessage() {
+  if (!token || !user) {
+    return <Navigate to="/account" replace />
+  }
+
+  const safeToken = token
+  const safeConversationId = conversationId
+
+  async function handleSendMessage() {
     const nextMessage = draft.trim()
 
     if (!nextMessage) {
       return
     }
 
-    setMessages((current) => [
-      ...current,
-      {
-        id: `you-${current.length + 1}`,
-        sender: 'you',
-        text: nextMessage,
-      },
-    ])
-    setDraft('')
+    setIsSending(true)
+    setError(null)
+
+    try {
+      const createdMessage = await sendConversationMessage(safeToken, safeConversationId, nextMessage)
+      setMessages((current) => [...current, createdMessage])
+      setDraft('')
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'Failed to send message')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
-    <PageShell note="This can stay small. One real sentence at a time." variant="chat">
+    <PageShell note="This conversation is now real and persisted by the backend." variant="chat">
       <section className="chat-page">
-        <GlassPanel className="chat-sidebar" flat>
-          <p className="panel-kicker">
-            {mode === 'incoming' ? 'They reached first' : 'You reached because it felt close'}
-          </p>
-          <h1 className="section-title">
-            {story.city}, {story.country}
-          </h1>
-          <p className="chat-sidebar__quote">"{story.excerpt}"</p>
-          <p className="chat-sidebar__copy">{story.fullText}</p>
-          <p className="entry-pill entry-pill--soft">"{entry}"</p>
-          <button className="button button--secondary" onClick={() => navigate('/match')} type="button">
-            Back to matches
-          </button>
-        </GlassPanel>
-
-        <GlassPanel className="chat-room" flat>
-          <div className="chat-room__header">
-            <p className="panel-kicker">{story.language}</p>
-            <h2 className="section-title">Chat</h2>
-          </div>
-
-          <div className="chat-thread">
-            {messages.map((message) => (
-              <div
-                className={`chat-message chat-message--${message.sender}`}
-                key={message.id}
-              >
-                <p>{message.text}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="chat-composer">
-            <label className="field">
-              <span className="sr-only">Write a message</span>
-              <textarea
-                className="field__textarea"
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder="Write back softly."
-                value={draft}
-              />
-            </label>
-
-            <div className="action-row">
-              <button className="button button--primary" onClick={sendMessage} type="button">
-                Send
+        {isLoading || !conversation ? (
+          <GlassPanel className="chat-room" flat>
+            <p className="panel-kicker">Loading</p>
+            <h1 className="section-title">Pulling the conversation from the backend.</h1>
+            <p className="section-copy">If the other person already answered, it will appear here.</p>
+          </GlassPanel>
+        ) : (
+          <>
+            <GlassPanel className="chat-sidebar" flat>
+              <p className="panel-kicker">Conversation</p>
+              <h1 className="section-title">{conversation.otherParticipant.handle}</h1>
+              <p className="chat-sidebar__quote">"{conversation.story.excerpt}"</p>
+              <p className="chat-sidebar__copy">
+                {conversation.story.city}, {conversation.story.country} · {conversation.story.areaLabel}
+              </p>
+              <p className="entry-pill entry-pill--soft">
+                Story: {conversation.story.city} · {conversation.story.areaLabel}
+              </p>
+              <button className="button button--secondary" onClick={() => navigate('/account')} type="button">
+                Back to inbox
               </button>
-            </div>
-          </div>
-        </GlassPanel>
+            </GlassPanel>
+
+            <GlassPanel className="chat-room" flat>
+              <div className="chat-room__header">
+                <p className="panel-kicker">
+                  {messages.length > 0 ? `${messages.length} messages` : 'No messages yet'}
+                </p>
+                <h2 className="section-title">Chat</h2>
+              </div>
+
+              {error ? <p className="account-feedback account-feedback--error">{error}</p> : null}
+
+              <div className="chat-thread">
+                {messages.length > 0 ? (
+                  messages.map((message) => {
+                    const sender = message.senderId === user.id ? 'you' : 'them'
+
+                    return (
+                      <div
+                        className={`chat-message chat-message--${sender}`}
+                        key={message.id}
+                      >
+                        <p>{message.text}</p>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <p className="section-copy">No one has written yet. Start with one true line.</p>
+                )}
+              </div>
+
+              <div className="chat-composer">
+                <label className="field">
+                  <span className="sr-only">Write a message</span>
+                  <textarea
+                    className="field__textarea"
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Write back softly."
+                    value={draft}
+                  />
+                </label>
+
+                <div className="action-row">
+                  <button
+                    className="button button--primary"
+                    disabled={isSending}
+                    onClick={() => void handleSendMessage()}
+                    type="button"
+                  >
+                    {isSending ? 'Sending...' : 'Send'}
+                  </button>
+                </div>
+              </div>
+            </GlassPanel>
+          </>
+        )}
       </section>
     </PageShell>
   )
