@@ -24,23 +24,24 @@ export function AuthPage() {
   const [isStartingGuest, setIsStartingGuest] = useState(false)
   const isGuestSession = Boolean(user && !user.isPersistent)
 
-  if (user?.isPersistent) {
-    return <Navigate to="/" replace />
-  }
-
+  
   useEffect(() => {
     if (state?.mode) {
       setMode(state.mode)
     } else if (isGuestSession) {
       setMode('register')
     }
-
+    
     if (state?.message) {
       setMessage(state.message)
       navigate(location.pathname, { replace: true, state: null })
     }
   }, [isGuestSession, location.pathname, navigate, state])
-
+  
+  if (user?.isPersistent) {
+    return <Navigate to="/" replace />
+  }
+      
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
