@@ -1035,7 +1035,8 @@ svg {
   min-height: 100vh;
   margin: 0 auto;
   padding-top: 3rem;
-  padding-bottom: 2rem;}
+  padding-bottom: 2rem;
+}
 
 .entry-shell--auth {
   grid-template-columns: minmax(0, 1.14fr) minmax(24rem, 34rem);
@@ -1064,6 +1065,7 @@ svg {
 
 .auth-card {
   width: min(34rem, 100%);
+  min-width: 0;
   justify-self: end;
   display: grid;
   gap: 0.7rem;
@@ -1071,7 +1073,8 @@ svg {
 
 .auth-stage {
   width: min(36rem, 100%);
-  height: min(510px, 100%);
+  min-width: 0;
+  height: auto;
   padding: 1rem;
   display: grid;
   gap: 0.8rem;
@@ -3108,7 +3111,7 @@ svg {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -line-clamp: 2;
 }
 
 .account-card {
@@ -3352,7 +3355,7 @@ svg {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -line-clamp: 2;
 }
 
 .account-card--compact .account-card__title,
@@ -3364,15 +3367,15 @@ svg {
 }
 
 .account-card--compact .account-card__title {
-  -webkit-line-clamp: 1;
+  -line-clamp: 1;
 }
 
 .account-card--compact .account-card__meta {
-  -webkit-line-clamp: 1;
+  -line-clamp: 1;
 }
 
 .account-card--compact .account-card__note {
-  -webkit-line-clamp: 2;
+  -line-clamp: 2;
 }
 
 .account-request-modal {
@@ -3400,6 +3403,18 @@ svg {
     grid-template-columns: 1fr;
   }
 
+  .matches-layout > *,
+  .compose-page > *,
+  .chat-page > *,
+  .about-layout > *,
+  .entry-shell--onboarding > *,
+  .entry-shell--auth > *,
+  .profile-page > *,
+  .account-page > * {
+    min-width: 0;
+    width: 100%;
+  }
+
   .compose-preview,
   .chat-sidebar {
     order: -1;
@@ -3420,23 +3435,6 @@ svg {
   .account-panel {
     height: auto;
     overflow: visible;
-  }
-}
-
-@media (max-width: 760px) {
-  .app-toast {
-    left: 0.6rem;
-    right: 0.6rem;
-    bottom: 5.6rem;
-    transform: none;
-    width: auto;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-
-  .app-toast__close {
-    width: 100%;
   }
 }
 
@@ -3525,6 +3523,66 @@ svg {
 @media (max-width: 760px) {
   :root {
     font-size: 17px;
+  }
+
+  .matches-layout,
+  .compose-page,
+  .chat-page,
+  .about-layout,
+  .entry-shell--onboarding,
+  .entry-shell--auth,
+  .profile-page,
+  .account-page {
+    grid-template-columns: 1fr;
+  }
+
+  .compose-preview,
+  .chat-sidebar {
+    order: -1;
+  }
+
+  .compose-form-grid,
+  .auth-stage__details {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-shell,
+  .page-main {
+    width: min(100%, calc(100% - 16px));
+  }
+
+  .entry-shell--auth {
+    align-items: stretch;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 6.6rem;
+  }
+
+  .auth-stage,
+  .auth-card {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    justify-self: stretch;
+  }
+
+  .chip {
+    min-width: 0;
+  }
+
+  .app-toast {
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 5.6rem;
+    transform: none;
+    width: auto;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .app-toast__close {
+    width: 100%;
   }
 
   .modal-backdrop--inbox {
@@ -3837,20 +3895,6 @@ svg {
 
   .action-row {
     width: 100%;
-  }
-
-  .entry-shell--auth {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-stage,
-  .auth-card {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  .auth-stage__details {
-    grid-template-columns: 1fr;
   }
 
   .profile-summary__header,
