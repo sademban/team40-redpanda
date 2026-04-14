@@ -515,7 +515,7 @@ export function AccountPage() {
             ) : null}
 
             {inboxError ? <p className="account-feedback account-feedback--error">{inboxError}</p> : null}
-            {isLoadingInbox ? <p className="section-copy">Loading inbox from the backend.</p> : null}
+            {isLoadingInbox ? <p className="inbox-loading-hint">Refreshing inbox<span className="inbox-loading-hint__dots" /></p> : null}
 
             <div className="inbox-tabs" role="tablist" aria-label="Inbox views">
               <button
