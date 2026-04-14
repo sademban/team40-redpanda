@@ -3415,7 +3415,6 @@ svg {
     width: 100%;
   }
 
-  .compose-preview,
   .chat-sidebar {
     order: -1;
   }
@@ -3518,6 +3517,31 @@ svg {
   .account-inbox-modal .account-stream--single {
     grid-template-columns: 1fr;
   }
+
+  .entry-shell--auth {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    align-items: start;
+  }
+
+  .auth-card {
+    order: -1;
+    width: 100%;
+    max-width: min(34rem, 100%);
+    margin-inline: auto;
+  }
+
+  .auth-stage {
+    width: 100%;
+    max-width: min(34rem, 100%);
+    margin-inline: auto;
+  }
+
+  .auth-stage__details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -3536,7 +3560,6 @@ svg {
     grid-template-columns: 1fr;
   }
 
-  .compose-preview,
   .chat-sidebar {
     order: -1;
   }
@@ -3792,7 +3815,33 @@ svg {
   }
 
   .chat-room {
-    min-height: 34rem;
+    min-height: 0;
+    max-height: 70vh;
+    overflow: hidden;
+  }
+
+  .chat-thread {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    min-height: 0;
+    max-height: 50vh;
+  }
+
+  .chat-sidebar {
+    padding: 0.85rem 1rem;
+  }
+
+  .chat-sidebar .entry-pill--soft {
+    display: none;
+  }
+
+  .page-intro {
+    max-width: 100%;
+  }
+
+  .page-intro .display {
+    font-size: clamp(1.8rem, 7vw, 2.8rem);
   }
 
   .entry-shell {
@@ -3895,6 +3944,25 @@ svg {
 
   .action-row {
     width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .account-inbox-modal .account-panel__header .action-row {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .account-pill {
+    max-width: min(11rem, 44vw);
+    min-width: 0;
+  }
+
+  .account-pill__handle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 6rem;
   }
 
   .profile-summary__header,
