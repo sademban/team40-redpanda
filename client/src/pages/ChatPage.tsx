@@ -157,7 +157,7 @@ export function ChatPage() {
                     )
                   })
                 ) : (
-                  <p className="section-copy">No one has written yet. Start with one true line.</p>
+                  <p className="empty-state">No one has written yet. Start with one true line.</p>
                 )}
               </div>
 

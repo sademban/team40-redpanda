@@ -1794,6 +1794,8 @@ svg {
   gap: 0.9rem;
   padding-bottom: 0.2rem;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240, 110, 168, 0.3) transparent;
   overscroll-behavior-x: contain;
 }
 
@@ -3685,6 +3687,14 @@ svg {
 }
 
 @media (max-width: 980px) {
+  .about-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .about-panel {
+    min-height: auto;
+  }
+
   .page-main {
     width: min(100%, calc(100% - 18px));
   }
