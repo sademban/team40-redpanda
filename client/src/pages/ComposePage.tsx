@@ -82,6 +82,17 @@ export function ComposePage() {
 
   const selectedLocation = useMemo(() => findSupportedLocation(city), [city])
   const excerptCount = excerpt.trim().length
+
+  useEffect(() => {
+    const isDirty =
+      areaLabel !== 'Somewhere nearby' ||
+      excerpt !== 'I keep performing okayness long after the room has stopped asking me to.' ||
+      fullText !== 'I keep looking fine from far away, but up close everything feels heavier than I want to admit.'
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [areaLabel, excerpt, fullText])
   const activeStepIndex = composeSteps.findIndex((step) => step.id === activeStep)
   const activeStepMeta = composeSteps[activeStepIndex]
 
