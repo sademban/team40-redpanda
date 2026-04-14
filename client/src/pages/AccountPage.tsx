@@ -38,6 +38,8 @@ export function AccountPage() {
   const [inboxError, setInboxError] = useState<string | null>(null)
   const [isConfirmingLogout, setIsConfirmingLogout] = useState(false)
   const [isInboxModalOpen, setIsInboxModalOpen] = useState(false)
+  const [acceptingId, setAcceptingId] = useState<string | null>(null)
+  const [decliningId, setDecliningId] = useState<string | null>(null)
   const [selectedIncomingRequest, setSelectedIncomingRequest] = useState<ChatRequestSummary | null>(null)
   const [selectedConversation, setSelectedConversation] = useState<ConversationSummary | null>(null)
   const [selectedOutgoingRequest, setSelectedOutgoingRequest] = useState<ChatRequestSummary | null>(null)
@@ -105,6 +107,12 @@ export function AccountPage() {
   }, [token])
 
   useEffect(() => {
+    if (!token || !isInboxModalOpen) return
+    const id = window.setInterval(() => void refreshInbox(), 30_000)
+    return () => window.clearInterval(id)
+  }, [token, isInboxModalOpen])
+
+  useEffect(() => {
     if (!isConfirmingLogout && !isInboxModalOpen) {
       return
     }
@@ -126,6 +134,7 @@ export function AccountPage() {
     }
 
     setInboxError(null)
+    setAcceptingId(requestId)
 
     try {
       const conversation = await acceptChatRequest(token, requestId)
@@ -133,6 +142,8 @@ export function AccountPage() {
       navigate(`/chat/${conversation.id}`)
     } catch (requestError) {
       setInboxError(requestError instanceof Error ? requestError.message : 'Failed to accept request')
+    } finally {
+      setAcceptingId(null)
     }
   }
 
@@ -142,12 +153,15 @@ export function AccountPage() {
     }
 
     setInboxError(null)
+    setDecliningId(requestId)
 
     try {
       await declineChatRequest(token, requestId)
       await refreshInbox()
     } catch (requestError) {
       setInboxError(requestError instanceof Error ? requestError.message : 'Failed to decline request')
+    } finally {
+      setDecliningId(null)
     }
   }
 
@@ -386,17 +400,19 @@ export function AccountPage() {
               <div className="action-row">
                 <button
                   className="button button--primary"
+                  disabled={acceptingId === selectedIncomingRequest.id || decliningId === selectedIncomingRequest.id}
                   onClick={() => void handleAccept(selectedIncomingRequest.id)}
                   type="button"
                 >
-                  Accept
+                  {acceptingId === selectedIncomingRequest.id ? 'Accepting...' : 'Accept'}
                 </button>
                 <button
                   className="button button--secondary"
+                  disabled={acceptingId === selectedIncomingRequest.id || decliningId === selectedIncomingRequest.id}
                   onClick={() => void handleDecline(selectedIncomingRequest.id)}
                   type="button"
                 >
-                  Decline
+                  {decliningId === selectedIncomingRequest.id ? 'Declining...' : 'Decline'}
                 </button>
               </div>
             </article>
