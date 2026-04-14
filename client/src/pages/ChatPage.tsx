@@ -100,7 +100,7 @@ export function ChatPage() {
       setMessages((current) => [...current, createdMessage])
       setDraft('')
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : 'Failed to send message')
+      setError(sendError instanceof Error ? sendError.message : 'Failed to send message. Your message is still in the box — try again.')
     } finally {
       setIsSending(false)
     }
