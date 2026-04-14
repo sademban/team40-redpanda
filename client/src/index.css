@@ -3527,7 +3527,6 @@ svg {
   }
 
   .auth-card {
-    order: -1;
     width: 100%;
     max-width: min(34rem, 100%);
     margin-inline: auto;
