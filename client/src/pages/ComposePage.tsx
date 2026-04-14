@@ -219,6 +219,15 @@ export function ComposePage() {
       <section className="compose-page">
         <GlassPanel className="compose-panel" flat>
           <GlassPanel className={`compose-stage compose-stage--${activeStep}`} flat>
+            <div className="compose-steps" aria-label={`Step ${activeStepIndex + 1} of ${composeSteps.length}`}>
+              {composeSteps.map((step, index) => (
+                <span
+                  key={step.id}
+                  className={`compose-steps__dot${index === activeStepIndex ? ' is-active' : ''}${index < activeStepIndex ? ' is-done' : ''}`}
+                  title={step.label}
+                />
+              ))}
+            </div>
             <p className="panel-kicker">{activeStepMeta.label}</p>
             <h2 className="compose-stage__title">{activeStepMeta.title}</h2>
             <p className="section-copy compose-stage__copy">{activeStepMeta.description}</p>

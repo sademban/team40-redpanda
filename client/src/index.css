@@ -172,6 +172,38 @@ svg {
   }
 }
 
+@keyframes messageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.page-main > section,
+.page-main > div {
+  animation: pageEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .page-main {
   position: relative;
   z-index: 1;
@@ -576,6 +608,7 @@ svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.38rem;
   min-width: 5.6rem;
   padding: 0.78rem 1rem;
   overflow: hidden;
@@ -658,6 +691,32 @@ svg {
 .tab-bar__link.active .tab-bar__label {
   transform: translateY(-1px);
   letter-spacing: 0.04em;
+}
+
+.tab-bar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 0.62;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.tab-bar__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tab-bar__link:hover .tab-bar__icon,
+.tab-bar__link.active .tab-bar__icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.tab-bar__link.active .tab-bar__icon {
+  color: var(--color-accent-strong);
 }
 
 .tab-bar--map .tab-bar__link {
@@ -891,6 +950,11 @@ svg {
   transform: translateY(-2px);
 }
 
+.button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  transition-duration: 60ms;
+}
+
 .button:disabled {
   cursor: wait;
   opacity: 0.72;
@@ -965,11 +1029,14 @@ svg {
 .field__textarea:focus,
 .field__select:focus {
   outline: none;
-  border-color: rgba(240, 110, 168, 0.4);
+  border-color: rgba(240, 110, 168, 0.52);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.96),
-    0 0 0 5px rgba(240, 110, 168, 0.1),
+    0 0 0 4px rgba(240, 110, 168, 0.13),
     0 16px 30px rgba(208, 155, 183, 0.14);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .field__input {
@@ -2364,6 +2431,30 @@ svg {
   margin: 0;
 }
 
+.compose-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  margin-bottom: 0.2rem;
+}
+
+.compose-steps__dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: rgba(208, 155, 183, 0.38);
+  transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1), background 240ms ease;
+}
+
+.compose-steps__dot.is-done {
+  background: rgba(240, 110, 168, 0.46);
+}
+
+.compose-steps__dot.is-active {
+  width: 1.4rem;
+  background: linear-gradient(90deg, #f8b8d3, var(--color-accent));
+}
+
 .compose-stage {
   display: flex;
   flex-direction: column;
@@ -2723,6 +2814,10 @@ svg {
     0 22px 36px rgba(208, 155, 183, 0.16);
 }
 
+.opening-card.is-active {
+  border-left: 3px solid var(--color-accent);
+}
+
 .opening-card__label {
   margin: 0 0 0.75rem;
   color: var(--color-accent-strong);
@@ -2809,10 +2904,11 @@ svg {
 
 .chat-message {
   display: flex;
+  animation: messageFadeIn 0.2s ease-out both;
 }
 
 .chat-message p {
-  max-width: min(34rem, 88%);
+  max-width: min(34rem, 84%);
   margin: 0;
   padding: 0.95rem 1.05rem;
   border-radius: 24px;
@@ -2824,6 +2920,7 @@ svg {
 }
 
 .chat-message--them p {
+  border-bottom-left-radius: 0.35rem;
   background: rgba(255, 255, 255, 0.78);
   color: var(--color-text);
   box-shadow:
@@ -2836,6 +2933,7 @@ svg {
 }
 
 .chat-message--you p {
+  border-bottom-right-radius: 0.35rem;
   background: linear-gradient(135deg, rgba(248, 184, 211, 0.92), rgba(240, 110, 168, 0.88));
   color: white;
   box-shadow: 0 12px 26px rgba(234, 76, 147, 0.18);
