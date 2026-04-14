@@ -19,6 +19,7 @@ export function ProfilePage() {
   const { logout, resetOnboarding, session, updateProfile } = useAppSession()
   const profile = session.profile
   const [isEditing, setIsEditing] = useState(false)
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false)
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '')
   const [city, setCity] = useState(profile?.city ?? '')
   const [error, setError] = useState('')
@@ -97,13 +98,27 @@ export function ProfilePage() {
             <button className="button button--primary" onClick={() => setIsEditing(true)} type="button">
               Edit profile
             </button>
-            <button className="button button--secondary" onClick={handleResetOnboarding} type="button">
-              Reset onboarding
-            </button>
+            {isConfirmingReset ? (
+              <>
+                <button className="button button--primary" onClick={handleResetOnboarding} type="button">
+                  Yes, reset
+                </button>
+                <button className="button button--secondary" onClick={() => setIsConfirmingReset(false)} type="button">
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button className="button button--secondary" onClick={() => setIsConfirmingReset(true)} type="button">
+                Reset onboarding
+              </button>
+            )}
             <button className="button button--ghost" onClick={handleLogout} type="button">
               Log out
             </button>
           </div>
+          {isConfirmingReset ? (
+            <p className="inline-error">This will clear your profile and return you to onboarding.</p>
+          ) : null}
         </GlassPanel>
 
         <GlassPanel className="profile-editor" flat>
