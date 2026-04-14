@@ -90,6 +90,7 @@ export function PageShell({
 
   return (
     <div className="page-shell">
+      <a className="skip-link" href="#page-main">Skip to content</a>
       <MoodBackground variant={variant} />
       <header className="app-topbar">
         <div className="app-topbar__panel">
@@ -122,7 +123,7 @@ export function PageShell({
         </div>
       </header>
 
-      <main className="page-main">{children}</main>
+      <main className="page-main" id="page-main">{children}</main>
 
       <nav className="tab-bar tab-bar--map" aria-label="Primary">
         <NavLink

@@ -3137,6 +3137,11 @@ svg {
   min-height: 20rem;
 }
 
+.about-cta {
+  margin-top: 1.5rem;
+  justify-content: center;
+}
+
 .account-panel {
   display: grid;
   gap: 0.85rem;
