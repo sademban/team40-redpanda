@@ -3646,9 +3646,25 @@ svg {
   .chat-page,
   .about-layout,
   .entry-shell--onboarding,
+  .entry-shell--auth,
   .profile-page,
   .account-page {
     grid-template-columns: 1fr;
+  }
+
+  .entry-shell--auth {
+    gap: 1.5rem;
+    align-items: start;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+  }
+
+  .auth-card,
+  .auth-stage {
+    width: 100%;
+    max-width: min(36rem, 100%);
+    min-width: 0;
+    margin-inline: auto;
   }
 
   .matches-layout > *,
