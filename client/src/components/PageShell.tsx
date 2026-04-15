@@ -11,11 +11,42 @@ interface PageShellProps {
 }
 
 const navigationItems = [
-  { to: '/', label: 'Map' },
-  { to: '/write', label: 'Write' },
-  { to: '/match', label: 'Matches' },
-  { to: '/account', label: 'Account' },
-  { to: '/about', label: 'About' },
+  {
+    to: '/write',
+    label: 'Write',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/match',
+    label: 'Matches',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/account',
+    label: 'Account',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/about',
+    label: 'About',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+      </svg>
+    ),
+  },
 ]
 
 export function PageShell({
@@ -59,6 +90,7 @@ export function PageShell({
 
   return (
     <div className="page-shell">
+      <a className="skip-link" href="#page-main">Skip to content</a>
       <MoodBackground variant={variant} />
       <header className="app-topbar">
         <div className="app-topbar__panel">
@@ -91,7 +123,7 @@ export function PageShell({
         </div>
       </header>
 
-      <main className="page-main">{children}</main>
+      <main className="page-main" id="page-main">{children}</main>
 
       <nav className="tab-bar tab-bar--map" aria-label="Primary">
         <NavLink
@@ -118,6 +150,7 @@ export function PageShell({
             key={item.to}
             to={item.to}
           >
+            <span className="tab-bar__icon">{item.icon}</span>
             <span className="tab-bar__label">{item.label}</span>
           </NavLink>
         ))}

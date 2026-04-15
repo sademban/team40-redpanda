@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createStory } from '../lib/api'
 import { GlassPanel } from '../components/GlassPanel'
@@ -82,6 +82,17 @@ export function ComposePage() {
 
   const selectedLocation = useMemo(() => findSupportedLocation(city), [city])
   const excerptCount = excerpt.trim().length
+
+  useEffect(() => {
+    const isDirty =
+      areaLabel !== 'Somewhere nearby' ||
+      excerpt !== 'I keep performing okayness long after the room has stopped asking me to.' ||
+      fullText !== 'I keep looking fine from far away, but up close everything feels heavier than I want to admit.'
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [areaLabel, excerpt, fullText])
   const activeStepIndex = composeSteps.findIndex((step) => step.id === activeStep)
   const activeStepMeta = composeSteps[activeStepIndex]
 
@@ -219,6 +230,15 @@ export function ComposePage() {
       <section className="compose-page">
         <GlassPanel className="compose-panel" flat>
           <GlassPanel className={`compose-stage compose-stage--${activeStep}`} flat>
+            <div className="compose-steps" aria-label={`Step ${activeStepIndex + 1} of ${composeSteps.length}`}>
+              {composeSteps.map((step, index) => (
+                <span
+                  key={step.id}
+                  className={`compose-steps__dot${index === activeStepIndex ? ' is-active' : ''}${index < activeStepIndex ? ' is-done' : ''}`}
+                  title={step.label}
+                />
+              ))}
+            </div>
             <p className="panel-kicker">{activeStepMeta.label}</p>
             <h2 className="compose-stage__title">{activeStepMeta.title}</h2>
             <p className="section-copy compose-stage__copy">{activeStepMeta.description}</p>

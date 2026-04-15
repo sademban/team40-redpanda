@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { GlassPanel } from '../components/GlassPanel'
 import { PageShell } from '../components/PageShell'
 
@@ -50,6 +51,11 @@ export function AboutPage() {
           </p>
         </GlassPanel>
       </section>
+
+      <div className="about-cta action-row">
+        <Link className="button button--primary" to="/">Explore the map</Link>
+        <Link className="button button--secondary" to="/write">Write a story</Link>
+      </div>
     </PageShell>
   )
 }

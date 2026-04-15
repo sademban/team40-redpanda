@@ -155,6 +155,7 @@ export function AuthPage() {
               <input
                 autoComplete="email"
                 className="field__input field__input--plain"
+                disabled={isSubmitting}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
                 type="email"
@@ -167,6 +168,7 @@ export function AuthPage() {
               <input
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 className="field__input field__input--plain"
+                disabled={isSubmitting}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="At least 8 characters"
                 type="password"

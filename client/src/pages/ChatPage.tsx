@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
   getConversationMessages,
@@ -23,6 +23,7 @@ export function ChatPage() {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
+  const threadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const currentToken = token
@@ -67,6 +68,12 @@ export function ChatPage() {
     }
   }, [conversationId, token])
 
+  useEffect(() => {
+    if (threadRef.current) {
+      threadRef.current.scrollTop = threadRef.current.scrollHeight
+    }
+  }, [messages])
+
   if (!conversationId) {
     return <Navigate to="/account" replace />
   }
@@ -93,7 +100,7 @@ export function ChatPage() {
       setMessages((current) => [...current, createdMessage])
       setDraft('')
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : 'Failed to send message')
+      setError(sendError instanceof Error ? sendError.message : 'Failed to send message. Your message is still in the box — try again.')
     } finally {
       setIsSending(false)
     }
@@ -135,7 +142,7 @@ export function ChatPage() {
 
               {error ? <p className="account-feedback account-feedback--error">{error}</p> : null}
 
-              <div className="chat-thread">
+              <div className="chat-thread" ref={threadRef}>
                 {messages.length > 0 ? (
                   messages.map((message) => {
                     const sender = message.senderId === user.id ? 'you' : 'them'
@@ -150,7 +157,7 @@ export function ChatPage() {
                     )
                   })
                 ) : (
-                  <p className="section-copy">No one has written yet. Start with one true line.</p>
+                  <p className="empty-state">No one has written yet. Start with one true line.</p>
                 )}
               </div>
 
@@ -160,7 +167,13 @@ export function ChatPage() {
                   <textarea
                     className="field__textarea"
                     onChange={(event) => setDraft(event.target.value)}
-                    placeholder="Write back softly."
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        void handleSendMessage()
+                      }
+                    }}
+                    placeholder="Write back softly. Press Enter to send, Shift+Enter for a new line."
                     value={draft}
                   />
                 </label>
