@@ -2572,7 +2572,6 @@ svg {
   flex-direction: column;
   gap: 0.6rem;
   padding: 0.8rem;
-  height: clamp(26.5rem, calc(100vh - 14.5rem), 30rem);
   min-height: 0;
 }
 
@@ -2582,7 +2581,7 @@ svg {
   flex: 1;
   min-height: 0;
   gap: 0.5rem;
-  overflow-y: hidden;
+  overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0.1rem;
 }
