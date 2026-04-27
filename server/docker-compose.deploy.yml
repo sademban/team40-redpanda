@@ -14,6 +14,21 @@ services:
       timeout: 5s
       retries: 10
 
+  embed:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+    restart: unless-stopped
+    command: --model-id BAAI/bge-small-en-v1.5
+    volumes:
+      - tei_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    expose:
+      - "80"
+
   api:
     build:
       context: .
@@ -22,11 +37,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      embed:
+        condition: service_healthy
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://echo:echo@db:5432/echo
       PORT: 3001
+      TEI_URL: http://embed:80
     expose:
       - "3001"
 
@@ -50,4 +68,5 @@ volumes:
   echo_db:
   caddy_data:
   caddy_config:
+  tei_data:
 

@@ -170,9 +170,9 @@ async function main() {
     ),
   )
 
-  let shouldGenerateEmbeddings = Boolean(process.env.OPENROUTER_API_KEY?.trim())
+  let shouldGenerateEmbeddings = process.env.SKIP_EMBEDDINGS !== '1'
   if (!shouldGenerateEmbeddings) {
-    console.log('OPENROUTER_API_KEY is not set. Stories will be seeded without embeddings.')
+    console.log('SKIP_EMBEDDINGS=1 set. Stories will be seeded without embeddings.')
   }
 
   console.log(`Seeding ${seededUsers.length} stories...`)
