@@ -20,12 +20,6 @@ services:
     command: --model-id BAAI/bge-small-en-v1.5
     volumes:
       - tei_data:/data
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 90s
     expose:
       - "80"
 
@@ -38,7 +32,7 @@ services:
       db:
         condition: service_healthy
       embed:
-        condition: service_healthy
+        condition: service_started
     env_file:
       - .env
     environment:
