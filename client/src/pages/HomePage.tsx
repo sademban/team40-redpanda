@@ -348,11 +348,10 @@ export function HomePage() {
                       <p className="story-focus__text">{activeStory.fullText}</p>
                     </div>
 
-                    {chatActionError ? (
-                      <p className="account-feedback account-feedback--error">{chatActionError}</p>
-                    ) : null}
-
                     <div className="story-focus__actions">
+                      {chatActionError ? (
+                        <p className="account-feedback account-feedback--error">{chatActionError}</p>
+                      ) : null}
                       {activeStory.openToChat ? (
                         <button
                           className="button button--primary"
@@ -378,12 +377,12 @@ export function HomePage() {
                       <button className="button button--ghost" onClick={() => openWriter()} type="button">
                         Write your own
                       </button>
+                      {!user?.isPersistent ? (
+                        <p className="story-focus__guest-hint">
+                          Guests can send requests, but losing this token loses the chat. Save your account later for recovery.
+                        </p>
+                      ) : null}
                     </div>
-                    {!user?.isPersistent ? (
-                      <p className="section-copy">
-                        Guests can send requests, but losing this token loses the chat. Save your account later for recovery.
-                      </p>
-                    ) : null}
                   </div>
 
                   {relatedCities.length > 0 ? (
