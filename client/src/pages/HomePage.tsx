@@ -12,6 +12,7 @@ import { PageShell } from '../components/PageShell'
 import { RegistryMap } from '../components/RegistryMap'
 import { SearchInput } from '../components/SearchInput'
 import { useApp } from '../contexts/AppContext'
+import { ApiError, createChatRequest } from '../lib/api'
 import type { Emotion } from '../types/story'
 
 const MAP_INTRO_KEY = 'echo-map-intro-seen'
@@ -33,7 +34,7 @@ function getInitialIntroVisibility() {
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { clusters, dataError, isBootstrapping, isRefreshingStories } = useApp()
+  const { clusters, dataError, isBootstrapping, isRefreshingStories, token, user } = useApp()
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionFilter>('all')
   const [query, setQuery] = useState('')
   const [hoveredClusterId, setHoveredClusterId] = useState<string | null>(null)
@@ -41,6 +42,8 @@ export function HomePage() {
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [resetViewToken, setResetViewToken] = useState(0)
   const [showAmbientCopy, setShowAmbientCopy] = useState(getInitialIntroVisibility)
+  const [isRequestingChat, setIsRequestingChat] = useState(false)
+  const [chatActionError, setChatActionError] = useState<string | null>(null)
   const deferredQuery = useDeferredValue(query)
   const normalizedQuery = deferredQuery.trim()
 
@@ -133,7 +136,41 @@ export function HomePage() {
     setHoveredClusterId(null)
     setSelectedClusterId(null)
     setSelectedStoryId(null)
-    setResetViewToken((token) => token + 1)
+    setResetViewToken((value) => value + 1)
+  }
+
+  async function handleSendChatRequest(storyId: string, city: string) {
+    if (!token) {
+      navigate('/auth')
+      return
+    }
+
+    setIsRequestingChat(true)
+    setChatActionError(null)
+
+    try {
+      await createChatRequest(token, storyId)
+      navigate('/account', {
+        state: {
+          message: `Chat request sent to ${city}. It will appear in their inbox until they accept.`,
+        },
+      })
+    } catch (requestError) {
+      if (requestError instanceof ApiError && requestError.status === 409) {
+        navigate('/account', {
+          state: {
+            message: 'A request or conversation for this story already exists. Check your inbox.',
+          },
+        })
+        return
+      }
+
+      setChatActionError(
+        requestError instanceof Error ? requestError.message : 'Failed to send chat request',
+      )
+    } finally {
+      setIsRequestingChat(false)
+    }
   }
 
   return (
@@ -311,22 +348,42 @@ export function HomePage() {
                       <p className="story-focus__text">{activeStory.fullText}</p>
                     </div>
 
+                    {chatActionError ? (
+                      <p className="account-feedback account-feedback--error">{chatActionError}</p>
+                    ) : null}
+
                     <div className="story-focus__actions">
-                      <button
-                        className="button button--primary"
-                        onClick={() =>
-                          navigate('/match', {
-                            state: { suggestedStoryId: activeStory.id },
-                          })
-                        }
-                        type="button"
-                      >
-                        Explore matches
-                      </button>
+                      {activeStory.openToChat ? (
+                        <button
+                          className="button button--primary"
+                          disabled={isRequestingChat}
+                          onClick={() => handleSendChatRequest(activeStory.id, activeStory.city)}
+                          type="button"
+                        >
+                          {isRequestingChat ? 'Sending request...' : 'Send chat request'}
+                        </button>
+                      ) : (
+                        <button
+                          className="button button--primary"
+                          onClick={() =>
+                            navigate('/match', {
+                              state: { suggestedStoryId: activeStory.id },
+                            })
+                          }
+                          type="button"
+                        >
+                          Explore matches
+                        </button>
+                      )}
                       <button className="button button--ghost" onClick={() => openWriter()} type="button">
                         Write your own
                       </button>
                     </div>
+                    {!user?.isPersistent ? (
+                      <p className="section-copy">
+                        Guests can send requests, but losing this token loses the chat. Save your account later for recovery.
+                      </p>
+                    ) : null}
                   </div>
 
                   {relatedCities.length > 0 ? (
