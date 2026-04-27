@@ -40,7 +40,7 @@ model Story {
   year         Int
   openToChat   Boolean        @default(false)
   chatPrompt   String
-  embedding    Unsupported("vector(2048)")?
+  embedding    Unsupported("vector(384)")?
   authorId     String?
   author       User?          @relation(fields: [authorId], references: [id])
   createdAt    DateTime       @default(now())
