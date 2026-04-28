@@ -6,6 +6,7 @@ import {
   getMapClusters,
   getRelatedCitySuggestions,
 } from '../data/stories'
+import { EmptyState } from '../components/EmptyState'
 import { FilterChips } from '../components/FilterChips'
 import { GlassPanel } from '../components/GlassPanel'
 import { PageShell } from '../components/PageShell'
@@ -235,30 +236,30 @@ export function HomePage() {
           <div className="discover-drawer-shell">
             {filteredClusters.length === 0 ? (
               <GlassPanel className="map-invite" flat>
-                <p className="panel-kicker">Nothing close yet</p>
-                <h2 className="section-title">No stories surfaced for that feeling yet.</h2>
-                <p className="section-copy">
-                  Leave one true line behind. The next person may need exactly that.
-                </p>
-                <div className="action-row">
+                <EmptyState
+                  variant="map"
+                  title="Nothing close yet"
+                  body="No stories surfaced for that feeling yet. Leave one true line behind — the next person may need exactly that."
+                  action={
                     <button
                       className="button button--primary"
-                    onClick={() =>
-                      openWriter({
-                        entry: normalizedQuery || undefined,
-                        suggestedStoryId: null,
-                      })
-                    }
-                    type="button"
+                      onClick={() =>
+                        openWriter({
+                          entry: normalizedQuery || undefined,
+                          suggestedStoryId: null,
+                        })
+                      }
+                      type="button"
                     >
                       Write your own
                     </button>
-                  </div>
-                  {isBootstrapping || isRefreshingStories ? (
-                    <p className="section-copy">Loading the map from the backend.</p>
-                  ) : null}
-                  {dataError ? <p className="account-feedback account-feedback--error">{dataError}</p> : null}
-                </GlassPanel>
+                  }
+                />
+                {isBootstrapping || isRefreshingStories ? (
+                  <p className="section-copy">Loading the map from the backend.</p>
+                ) : null}
+                {dataError ? <p className="account-feedback account-feedback--error">{dataError}</p> : null}
+              </GlassPanel>
             ) : hasSelection && selectedCluster && activeStory && activeMatch ? (
               <GlassPanel className="discover-drawer" flat>
                 <div className="discover-drawer__header">

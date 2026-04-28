@@ -12,7 +12,13 @@ export default function App() {
   const { user, isBootstrapping } = useApp()
 
   if (isBootstrapping) {
-    return null
+    return (
+      <div className="boot-splash" role="status" aria-live="polite">
+        <div className="boot-splash__orb" aria-hidden="true" />
+        <p className="boot-splash__brand">Echo</p>
+        <p className="boot-splash__copy">Tuning the room…</p>
+      </div>
+    )
   }
 
   return (

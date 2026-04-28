@@ -7,8 +7,10 @@ import {
   findNarrativeMatch as requestNarrativeMatch,
 } from '../lib/api'
 import { defaultEntry, emotionLabels } from '../data/stories'
+import { EmptyState } from '../components/EmptyState'
 import { GlassPanel } from '../components/GlassPanel'
 import { PageShell } from '../components/PageShell'
+import { Skeleton, SkeletonLines } from '../components/Skeleton'
 import { useApp } from '../contexts/AppContext'
 import type { StoryEntry } from '../types/story'
 
@@ -171,28 +173,36 @@ export function MatchPage() {
         {isLoading ? (
           <GlassPanel className="match-focus" flat>
             <p className="panel-kicker">Matching</p>
-            <h2 className="section-title">Looking through the backend story graph.</h2>
-            <p className="section-copy">
-              This screen now waits for the API instead of local mock data.
-            </p>
+            <Skeleton width="68%" height="1.6rem" radius="10px" />
+            <div style={{ marginTop: '0.8rem' }}>
+              <SkeletonLines lines={4} />
+            </div>
+            <div style={{ marginTop: '1.2rem', display: 'flex', gap: '0.6rem' }}>
+              <Skeleton width="6.5rem" height="1.4rem" radius="999px" />
+              <Skeleton width="5rem" height="1.4rem" radius="999px" />
+            </div>
           </GlassPanel>
         ) : error ? (
           <GlassPanel className="match-focus" flat>
-            <p className="panel-kicker">No match yet</p>
-            <h2 className="section-title">The backend could not surface a story right now.</h2>
-            <p className="section-copy">{error}</p>
-            <div className="action-row">
-              <button
-                className="button button--primary"
-                onClick={() => navigate('/write', { state: { entry } })}
-                type="button"
-              >
-                Back to writing
-              </button>
-              <button className="button button--secondary" onClick={() => navigate('/account')} type="button">
-                Save this account first
-              </button>
-            </div>
+            <EmptyState
+              variant="match"
+              title="No match yet"
+              body={error}
+              action={
+                <div className="action-row">
+                  <button
+                    className="button button--primary"
+                    onClick={() => navigate('/write', { state: { entry } })}
+                    type="button"
+                  >
+                    Back to writing
+                  </button>
+                  <button className="button button--secondary" onClick={() => navigate('/account')} type="button">
+                    Save this account first
+                  </button>
+                </div>
+              }
+            />
           </GlassPanel>
         ) : activeStory ? (
           <>

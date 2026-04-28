@@ -12,6 +12,7 @@ import {
   createAnonymousSession,
   getCurrentUser,
   getStory,
+  listChatRequests,
   listStoryClusters,
   loginPersistentUser,
   registerPersistentUser,
@@ -19,6 +20,8 @@ import {
 import type { AuthSession, AuthUser } from '../types/auth'
 import type { CityCluster, StoryEntry } from '../types/story'
 import { enrichCityClusters } from '../data/stories'
+
+const INBOX_POLL_MS = 60_000
 
 const AUTH_TOKEN_STORAGE_KEY = 'echo.auth.token'
 
@@ -31,6 +34,8 @@ interface AppContextValue {
   isRefreshingStories: boolean
   authError: string | null
   dataError: string | null
+  pendingInboxCount: number
+  refreshInboxCount: () => Promise<void>
   refreshStories: () => Promise<void>
   continueAsGuest: () => Promise<AuthSession>
   logout: () => void
@@ -75,6 +80,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isRefreshingStories, setIsRefreshingStories] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [dataError, setDataError] = useState<string | null>(null)
+  const [pendingInboxCount, setPendingInboxCount] = useState(0)
+
+  const refreshInboxCount = useCallback(async () => {
+    if (!token) {
+      setPendingInboxCount(0)
+      return
+    }
+
+    try {
+      const requests = await listChatRequests(token)
+      setPendingInboxCount(
+        requests.incoming.filter((request) => request.status === 'pending').length,
+      )
+    } catch {
+      setPendingInboxCount(0)
+    }
+  }, [token])
 
   const syncStories = useCallback(async () => {
     setIsRefreshingStories(true)
@@ -197,6 +219,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [restoreOrCreateSession, syncStories])
 
+  useEffect(() => {
+    if (!token) {
+      setPendingInboxCount(0)
+      return
+    }
+
+    void refreshInboxCount()
+    const interval = window.setInterval(() => {
+      void refreshInboxCount()
+    }, INBOX_POLL_MS)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [token, refreshInboxCount])
+
   const value = useMemo<AppContextValue>(
     () => ({
       token,
@@ -207,6 +245,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isRefreshingStories,
       authError,
       dataError,
+      pendingInboxCount,
+      refreshInboxCount,
       refreshStories: syncStories,
       continueAsGuest: createGuestSession,
       logout,
@@ -225,6 +265,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadStoryById,
       logout,
       login,
+      pendingInboxCount,
+      refreshInboxCount,
       register,
       stories,
       createGuestSession,

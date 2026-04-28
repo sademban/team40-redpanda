@@ -1,8 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { MoodBackground, type MoodVariant } from './MoodBackground'
 import { useApp } from '../contexts/AppContext'
-import { listChatRequests } from '../lib/api'
 
 interface PageShellProps {
   variant: MoodVariant
@@ -25,7 +24,8 @@ const navigationItems = [
     label: 'Matches',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+        <path d="M3.75 9.75a3 3 0 013-3h6a3 3 0 013 3v3a3 3 0 01-3 3h-1.5l-3 2.25v-2.25h-1.5a3 3 0 01-3-3v-3z" />
+        <path d="M9.75 6.75v-.75a3 3 0 013-3h4.5a3 3 0 013 3v3a3 3 0 01-3 3h-1.5" />
       </svg>
     ),
   },
@@ -55,41 +55,12 @@ export function PageShell({
   note = 'One true thing can be enough.',
 }: PageShellProps) {
   const location = useLocation()
-  const { user, token, isBootstrapping } = useApp()
+  const { user, isBootstrapping, pendingInboxCount } = useApp()
   const isMapRoute = location.pathname === '/'
   const navigationLinks = navigationItems.filter((item) => item.to !== '/')
-  const [pendingInboxCount, setPendingInboxCount] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadInboxCount() {
-      if (!token) {
-        setPendingInboxCount(0)
-        return
-      }
-
-      try {
-        const requests = await listChatRequests(token)
-        if (!cancelled) {
-          setPendingInboxCount(requests.incoming.filter((request) => request.status === 'pending').length)
-        }
-      } catch {
-        if (!cancelled) {
-          setPendingInboxCount(0)
-        }
-      }
-    }
-
-    void loadInboxCount()
-
-    return () => {
-      cancelled = true
-    }
-  }, [location.pathname, token])
 
   return (
-    <div className="page-shell">
+    <div className={`page-shell page-shell--${variant}`} data-variant={variant}>
       <a className="skip-link" href="#page-main">Skip to content</a>
       <MoodBackground variant={variant} />
       <header className="app-topbar">

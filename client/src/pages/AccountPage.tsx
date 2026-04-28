@@ -8,6 +8,7 @@ import {
   listConversations,
 } from '../lib/api'
 import type { ChatRequestSummary, ConversationSummary } from '../types/chat'
+import { EmptyState } from '../components/EmptyState'
 import { GlassPanel } from '../components/GlassPanel'
 import { PageShell } from '../components/PageShell'
 import { useApp } from '../contexts/AppContext'
@@ -329,7 +330,11 @@ export function AccountPage() {
               ))}
             </div>
           ) : (
-            <p className="section-copy">No incoming requests right now.</p>
+            <EmptyState
+              variant="inbox"
+              title="Inbox is quiet"
+              body="No one has reached out yet. When someone wants to talk, their request will land here."
+            />
           )
         ) : null}
 
@@ -354,7 +359,11 @@ export function AccountPage() {
               ))}
             </div>
           ) : (
-            <p className="section-copy">No accepted conversations yet.</p>
+            <EmptyState
+              variant="chat"
+              title="No conversations yet"
+              body="Once a request is accepted, the thread will live here. Soft, slow, yours."
+            />
           )
         ) : null}
 
@@ -377,7 +386,11 @@ export function AccountPage() {
               ))}
             </div>
           ) : (
-            <p className="section-copy">No outgoing requests waiting right now.</p>
+            <EmptyState
+              variant="match"
+              title="No outgoing requests"
+              body="When you reach out to someone, the pending request will sit here until they answer."
+            />
           )
         ) : null}
       </section>
@@ -417,7 +430,7 @@ export function AccountPage() {
               </div>
             </article>
           ) : (
-            <p className="section-copy">Select an incoming request to preview details.</p>
+            <p className="account-detail-hint">Pick an incoming request to preview details here.</p>
           )
         ) : null}
 
@@ -444,7 +457,7 @@ export function AccountPage() {
               </div>
             </article>
           ) : (
-            <p className="section-copy">Select a conversation to preview details.</p>
+            <p className="account-detail-hint">Pick a conversation to preview details here.</p>
           )
         ) : null}
 
@@ -462,7 +475,7 @@ export function AccountPage() {
               ) : null}
             </article>
           ) : (
-            <p className="section-copy">Select an outgoing request to preview details.</p>
+            <p className="account-detail-hint">Pick an outgoing request to preview details here.</p>
           )
         ) : null}
       </section>
